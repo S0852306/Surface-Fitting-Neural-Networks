@@ -87,7 +87,6 @@ disp('------------------------------------------------------')
                 [dw,db]=AutoGrad(ShuffledData,ShuffledLabel,NN);
                 NN=StochasticUpdateRule(dw,db,NN,option);
                 BatchCost(Counter)=CostFunction(ShuffledData,ShuffledLabel,NN);
-                NN.Path(Counter)=NN.weight{2}(1,1);
             end
 
             CurrentCost=CostFunction(data,label,NN);
