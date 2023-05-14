@@ -28,7 +28,7 @@ Error=label-OptimizedNN.Evaluate(data);
 OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
 OptimizedNN.PreTrained=1;
 disp('------------------------------------------------------')
-FormatSpec = 'MaxIteration : %d , Cost : %16.8f \n';
+FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
 FinalCost=CostFunction(data,label,OptimizedNN);
 fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
 fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
@@ -116,12 +116,10 @@ disp('------------------------------------------------------')
         
         NetworkType=NN.NetworkType;
         if strcmp(NN.LineSearcher,'Off')==0
-            if isfield(option,'Damping')==0 && NN.PreTrained==0
-                option.Damping='DoubleDamping';
-            elseif isfield(option,'Damping')==0 && NN.PreTrained==1
-                option.Damping='Skip';
-            end
-        else
+            option.Damping='DoubleDamping';
+        end
+
+        if isfield(option,'Damping')==0 
             option.Damping='DoubleDamping';
         end
         NN.Damping=option.Damping;
