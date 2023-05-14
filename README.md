@@ -1,5 +1,5 @@
 # Function Approximation Neural Networks
-Neural Networks for Function Approximation & Regression, able to approximate multivariable function. \mathbb{R}^{N}
+Neural Networks for Function Approximation & Regression, able to approximate multivariable function. 
 # Types of Neural Nets
  1. Ordinary MultiLayer Perceptron 
  2. Residual Neural Network
