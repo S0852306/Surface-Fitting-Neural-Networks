@@ -59,7 +59,7 @@ function NN=Initialization(NN,LayerStruct)
 end
 
 function [W,b]=LayerInitialization(v)
-    rng(1);
+
     InDim=v(1); OutDim=v(2);
     Radius=sqrt(6/(InDim+OutDim));
     temp=rand(OutDim,InDim);
