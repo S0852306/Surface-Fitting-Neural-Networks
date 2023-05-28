@@ -1,5 +1,6 @@
 # Function Approximation Neural Networks
-Neural networks for multiavariable function approximation & Regression. 
+Neural networks for multiavariable function approximation & Regression.
+More Info : https://tinyurl.com/wre9r5uk (MATLAB File Exchange)
 # Types of Neural Nets
  1. Ordinary MultiLayer Perceptron 
  2. Residual Neural Network
