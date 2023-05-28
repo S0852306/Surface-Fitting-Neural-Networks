@@ -2,7 +2,9 @@ function Derivate=DirectionalDerivate(Step,Direction,data,label,NN)
 
 % Numerical Algorithm Parameters Setting
 % -----------------------------------------------------------
-
+if strcmp(NN.InputAutoScaling,'on')==1
+    data=NN.InputScaleVector.*data-NN.InputCenterVector;
+end
 i=complex(0,1);
 h=1e-30;
 ReciprocalH=1/h;

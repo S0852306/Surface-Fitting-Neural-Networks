@@ -1,4 +1,8 @@
 function FunctionOutput=ResNet(data,NN)
+
+if strcmp(NN.InputAutoScaling,'on')==1
+    data=NN.InputScaleVector.*data-NN.InputCenterVector;
+end
 v=data;
 
 for i=1:NN.depth-1 
@@ -13,4 +17,6 @@ for i=1:NN.depth-1
     vp=z;
 end
 v=NN.OutActive(NN.weight{NN.depth}*v+NN.bias{NN.depth});
+
+
 FunctionOutput=v;

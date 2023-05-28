@@ -36,7 +36,7 @@ Interpolation.Derivate1=Derivate1;
 C0=Interpolation.Cost0;
 D0=Derivate0;
 
-c1=5e-4; c2=0.9;
+c1=1e-4; c2=0.9;
 Wolfe1LHS=Interpolation.Cost1;
 Wolfe1RHS=Interpolation.Cost0+c1*D0*Interval(2);
 Wolfe1Condition=Wolfe1LHS<=Wolfe1RHS;
@@ -168,7 +168,8 @@ end
 
 function SearchResults=BackTracking(C0,D0,BTMaxIter,Direction,data,label,NN)
 InitialStep=1; StepB=InitialStep;
-c1=1e-4; DecayRate=0.618033988749895;
+c1=1e-4; 
+% DecayRate=0.618033988749895;
 DecayRate=0.5;
 for i=1:BTMaxIter
     Wolfe1LHS=DirectionalCost(StepB,Direction,data,label,NN);

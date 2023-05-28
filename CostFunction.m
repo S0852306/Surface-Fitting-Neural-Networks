@@ -7,11 +7,16 @@ switch NetworkType
     case 'ResNet'
         Net=@(x,NN) ResNet(x,NN);
 end
-temp=(label-Net(data,NN)).^2;
+
+
+
+predict=Net(data,NN);
+temp=(label-predict).^2;
+
 switch Cost
     case 'SSE'
         E=sum(temp,[1 2]);
     case 'MSE'
-        E=mean(temp,[1 2]);
+        E=NN.MeanFactor*sum(temp,[1 2]);
 end
 FunctionOutput=E;

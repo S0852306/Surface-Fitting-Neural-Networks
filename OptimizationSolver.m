@@ -1,9 +1,40 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
+% v1.1.0
+% Add Automatic Scaling Option.
 
 solver=option.Solver;
 NN.OptimizationHistory=zeros(2,1);
 NN.StepSizeHistory=zeros(2,1);
 NN.LineSearchIteration=zeros(2,1);
+NN.numOfData=size(data,2); NN.MeanFactor=1/size(data,2);
+
+if isfield(option,'s0')==0
+    option.s0=2e-3;
+end
+
+if isfield(option,'BatchSize')==0
+    option.BatchSize=round(size(data,2)/10);
+end
+
+if strcmp(NN.InputAutoScaling,'on')
+    InputScaleVector=std(data,0,2);
+    InputCenterVector=mean(data,2);
+    NN.InputCenterVector=InputCenterVector./InputScaleVector;
+    NN.InputScaleVector=1./InputScaleVector;
+end
+
+if strcmp(NN.LabelAutoScaling,'on')
+    LabelScaleVector=std(label,0,2);
+    LabelCenterVector=mean(label,2);
+    label=(label-LabelCenterVector)./LabelScaleVector;
+    NN.LabelCenterVector=LabelCenterVector;
+    NN.LabelScaleVector=LabelScaleVector;
+end
+
+if isfield(NN,'activeDerivate')==0
+    disp('Please provide the derivatives of activation functions.');
+end
+
 
 switch solver
     case 'BFGS'
@@ -14,6 +45,30 @@ switch solver
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'SGD'
         OptimizedNN=StochasticSolver(data,label,NN,option);
+    case 'Auto'
+        %------------ First Stage Optimization ----------------------
+        tic
+        if isfield(option,'MaxIteration')==1
+            TotalIteration=option.MaxIteration;
+        else
+            TotalIteration=800;
+        end
+        option.Solver='ADAM';
+        option.s0=2e-3;
+        option.MaxIteration=round(TotalIteration/4);
+        option.BatchSize=round(size(data,2)/10);
+        NN=StochasticSolver(data,label,NN,option);
+
+        disp('------------------------------------------------------')
+        DisplayWord=['First Stage Optimization Finished in  ', num2str(option.MaxIteration), '  Iteration.'];
+        disp(DisplayWord)
+        disp('------------------------------------------------------')
+
+        %------------ Second Stage Optimization ----------------------
+        option.Solver='BFGS';
+        option.MaxIteration=TotalIteration-round(TotalIteration/4);
+        OptimizedNN=QuasiNewtonSolver(data,label,NN,option);
+        NN.OptimizationTime=toc;
 end
 
 NetworkType=NN.NetworkType;
@@ -23,8 +78,16 @@ switch NetworkType
     case 'ResNet'
         Net=@(x,NN) ResNet(x,NN);
 end
-OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
-Error=label-OptimizedNN.Evaluate(data);
+
+if strcmp(NN.LabelAutoScaling,'on')==1
+    OptimizedNN.Evaluate=@(x) NN.LabelScaleVector.*Net(x,OptimizedNN)+NN.LabelCenterVector;
+    Error=(NN.LabelScaleVector.*label+NN.LabelCenterVector)-OptimizedNN.Evaluate(data);
+else
+    OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
+    Error=label-OptimizedNN.Evaluate(data);
+end
+
+OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
 OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
 OptimizedNN.PreTrained=1;
 disp('------------------------------------------------------')
@@ -44,7 +107,7 @@ disp('------------------------------------------------------')
         if isfield(option,'GradientSolver')==0
             switch NetworkType
                 case 'ANN'
-                    AutoGrad=@(data,label,NN) ElementWiseAG(data,label,NN);
+                    AutoGrad=@(data,label,NN) AutomaticGradient(data,label,NN);
                 case'ResNet'
                     AutoGrad=@(data,label,NN) ElementWiseRNAG(data,label,NN);
             end
@@ -87,6 +150,7 @@ disp('------------------------------------------------------')
                 [dw,db]=AutoGrad(ShuffledData,ShuffledLabel,NN);
                 NN=StochasticUpdateRule(dw,db,NN,option);
                 BatchCost(Counter)=CostFunction(ShuffledData,ShuffledLabel,NN);
+                
             end
 
             CurrentCost=CostFunction(data,label,NN);
@@ -107,18 +171,18 @@ disp('------------------------------------------------------')
     function OptimizedNN=QuasiNewtonSolver(data,label,NN,option)
         
         if isfield(NN,'TerminationContion')==0
-            TerminationNorm=1e-4;
+            TerminationNorm=1e-5;
         else
             TerminationNorm=option.TerminateCondition;
         end
 
         
         NetworkType=NN.NetworkType;
-        if strcmp(NN.LineSearcher,'Off')==0
+        if isfield(option,'Damping')==0
             option.Damping='DoubleDamping';
         end
 
-        if isfield(option,'Damping')==0 
+        if strcmp(NN.LineSearcher,'Off')==0
             option.Damping='DoubleDamping';
         end
         NN.Damping=option.Damping;
@@ -127,7 +191,7 @@ disp('------------------------------------------------------')
         if isfield(option,'GradientSolver')==0
             switch NetworkType
                 case 'ANN'
-                    AutoGrad=@(data,label,NN) ElementWiseAG(data,label,NN);
+                    AutoGrad=@(data,label,NN) AutomaticGradient(data,label,NN);
                 case'ResNet'
                     AutoGrad=@(data,label,NN) ElementWiseRNAG(data,label,NN);
             end
@@ -249,6 +313,10 @@ disp('------------------------------------------------------')
                             NN.Termination=1;
                         end
 
+
+
+
+
                         %-------------------------------------------------
 
                         DampingCase=option.Damping;
@@ -310,6 +378,7 @@ disp('------------------------------------------------------')
                         UpdatedNN=NN;
                     end
             end
+
 
             %%
             function ParaStruct=LocalVtoM(v)
@@ -409,6 +478,7 @@ disp('------------------------------------------------------')
             Xnew=Xold-s0*d;
         end
         
+
     end
 
 end
