@@ -2,11 +2,16 @@ function OptimizedNN=OptimizationSolver(data,label,NN,option)
 % v1.1.0
 % Add Automatic Scaling Option.
 
-solver=option.Solver;
+
 NN.OptimizationHistory=zeros(2,1);
 NN.StepSizeHistory=zeros(2,1);
 NN.LineSearchIteration=zeros(2,1);
 NN.numOfData=size(data,2); NN.MeanFactor=1/size(data,2);
+
+if isfield(option,'Solver')==0
+    option.Solver='Auto';
+end
+solver=option.Solver;
 
 if isfield(option,'s0')==0
     option.s0=2e-3;
