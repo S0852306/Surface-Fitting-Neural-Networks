@@ -17,3 +17,7 @@
 # Guide
 "GeneralGuide.mlx" demonstrates how to approximate the logo of MATLAB using neural networks.
 ![image](https://github.com/s0422038/Function-Approximation-Neural-Networks/assets/111946393/d9f411dc-158c-4dfb-bbca-08b46453df77)
+# Reference
+ 1. Numerical Optimization, Nocedal & Wright.
+ 2. Practical Quasi-Newton Methods for Training Deep Neural Networks, Goldfarb, et al.
+ 3. Kronecker-factored Quasi-Newton Methods for Deep Learning, Yi Ren, et al.
