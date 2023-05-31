@@ -345,9 +345,10 @@ disp('------------------------------------------------------')
                                     theta2=1;
                                 end
                                 
-                                y=theta2*y+(1-theta2)*s;
+                                y=theta2*y+(1-theta2)*s; % KBFGS-20 Double Damping.
+                                %y=y+mu2*s; % KBFGS-22 Double Damping, LM Damping version.
                                 Rho=1/(s'*y);
-                                H=H+(Rho^2)*(NewInvRho+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
+                                H=H+(Rho^2)*(s'*y+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
 
                             case 'Powell'
                                 mu=0.2;
