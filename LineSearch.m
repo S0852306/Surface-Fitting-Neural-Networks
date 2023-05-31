@@ -20,7 +20,7 @@ Direction.Bias=BiasSearchDirection;
 
 %%
 LSMaxIter=3;
-IntervalDefault=[0,10];
+IntervalDefault=[0,5];
 % Existence=0;
 Interval=IntervalDefault;
 
