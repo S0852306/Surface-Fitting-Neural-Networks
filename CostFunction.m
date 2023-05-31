@@ -1,10 +1,6 @@
 function FunctionOutput=CostFunction(data,label,NN)
+
 Cost=NN.Cost;
-
-if strcmp(NN.InputAutoScaling,'on')==1
-    data=NN.InputScaleVector.*data-NN.InputCenterVector;
-end
-
 
 NetworkType=NN.NetworkType;
 switch NetworkType
