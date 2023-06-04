@@ -1,6 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.0
-% Add Automatic Scaling Option.
+% v1.1.1
 
 
 NN.OptimizationHistory=zeros(2,1);
@@ -39,7 +38,6 @@ end
 if isfield(NN,'activeDerivate')==0
     disp('Please provide the derivatives of activation functions.');
 end
-
 
 switch solver
     case 'BFGS'
@@ -183,11 +181,12 @@ disp('------------------------------------------------------')
 
         
         NetworkType=NN.NetworkType;
+        
         if isfield(option,'Damping')==0
             option.Damping='DoubleDamping';
         end
 
-        if strcmp(NN.LineSearcher,'Off')==0
+        if strcmp(NN.LineSearcher,'Off')==1
             option.Damping='DoubleDamping';
         end
         NN.Damping=option.Damping;
@@ -261,10 +260,12 @@ disp('------------------------------------------------------')
         OptimizedNN=NN;
 
         function UpdatedNN=QuasiNewtonUpdate(NN)
+
             solver=option.Solver;
             switch solver
-
+                
                 case 'BFGS'
+
                     dw=dwNew; db=dbNew;
                     dwVec=LocalMtoV(dw);
                     dbVec=LocalMtoV(db);
@@ -323,10 +324,35 @@ disp('------------------------------------------------------')
 
 
                         %-------------------------------------------------
-
-                        DampingCase=option.Damping;
+                        if isfield(option,'Damping')==0
+                            DampingCase='DoubleDamping';
+                        else
+                            DampingCase=option.Damping;
+                        end
+                        
                         switch DampingCase
                             case 'DoubleDamping'
+                                %Quasi-Newton for DNN, Yi-Ren, Goldfarb 2022
+                                mu1=0.2; mu2=0.001;
+
+                                Quadratic=y'*H*y; InvRho=s'*y;
+                                if InvRho<mu1*Quadratic
+                                    theta=(1-mu1)*Quadratic/(Quadratic-InvRho);
+                                    NN.CurvatureConditon(m)=0;
+                                else
+                                    theta=1;
+                                    NN.CurvatureConditon(m)=1;
+                                end
+                                s=theta*s+(1-theta)*H*y;
+                                
+                                y=y+mu2*s;
+                                %LM Damping
+                                Rho=1/(s'*y);
+                                H=H+(Rho^2)*(s'*y+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
+
+                            case 'Powell'
+                                %Quasi-Newton for DNN training, Goldfarb 2020  (Double Damping) 
+                                % Powell's Damping on H, B=I.
                                 mu1=0.2; mu2=0.001;
 
                                 Quadratic=y'*H*y; InvRho=s'*y;
@@ -345,25 +371,11 @@ disp('------------------------------------------------------')
                                     theta2=1;
                                 end
                                 
-                                y=theta2*y+(1-theta2)*s; % KBFGS-20 Double Damping.
-                                %y=y+mu2*s; % KBFGS-22 Double Damping, LM Damping version.
-                                Rho=1/(s'*y);
-                                H=H+(Rho^2)*(s'*y+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
-
-                            case 'Powell'
-                                mu=0.2;
-                                Quadratic =y'*H*y; InvRho=s'*y;
-                                if InvRho<mu*Quadratic
-                                    theta=(1-mu)/(1-InvRho/Quadratic);
-                                    NN.CurvatureConditon(m)=0;
-                                else
-                                    theta=1;
-                                    NN.CurvatureConditon(m)=1;
+                                y=theta2*y+(1-theta2)*s;
+                                Rho=1/(s'*y); InvRho=s'*y; Quadratic=y'*H*y;
+                                if Quadratic*InvRho<=2/mu1
+                                    H=H+(Rho^2)*(InvRho+Quadratic)*(s*s')-Rho*(H*y*s'+s*y'*H);
                                 end
-                                s=theta*s+(1-theta)*H*y;
-                                NewInvRho=s'*y; Rho=1/(NewInvRho);
-                                H=H+(Rho^2)*(NewInvRho+Quadratic)*(s*s')-Rho*(H*y*s'+s*y'*H);
-
                             case 'Skip'
                                 Rho=1/(s'*y); Quadratic=y'*H*y;
                                 if rho>1e-8
