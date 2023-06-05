@@ -27,6 +27,7 @@ ErrorVector=2*NN.MeanFactor*(label-Memory.A{NN.depth});
 g=-ErrorVector;
 dw=NN.weight; db=NN.bias;
 dw{NN.depth}=g*(Memory.A{NN.depth-1}.');
+db{NN.depth}=sum(g,2);
 for j=NN.depth-1:-1:2
 
     g=Memory.D{j}.*((NN.weight{j+1}.')*g);
