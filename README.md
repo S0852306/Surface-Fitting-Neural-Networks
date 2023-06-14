@@ -1,5 +1,5 @@
 # Function Approximation Neural Networks
-**Neural networks for multiavariable function approximation & Regression.**
+**Neural networks for multiavariable function approximation & regression.**
 # Introduction
 * Neural networks possess the property of universal approximation, which means that given enough parameters, a neural net can approximate any multi-variable continuous function to any desired level of accuracy.
 * Many built-in functions in MATLAB only provide functionality for curve fitting (1D) or surface fitting (2D). In contrast, neural networks can handle more general and higher-dimensional fitting problems. 
@@ -13,7 +13,8 @@
  1. Stochastic Gradient Descents (SGD)
  2. Stochastic Gradient Descents with Momentum (SGDM)
  3. Adaptive Momentum Estimation (ADAM)
- 4. Broyden-Fletcher-Goldfarb-Shanno Method (BFGS)
+ 4. Root Mean Square Propagation (RMSprop)
+ 5. Broyden-Fletcher-Goldfarb-Shanno Method (BFGS)
 # Guide
 "GeneralGuide.mlx" demonstrates how to approximate the logo of MATLAB using neural networks.
 ![image](https://github.com/s0422038/Function-Approximation-Neural-Networks/assets/111946393/d9f411dc-158c-4dfb-bbca-08b46453df77)
