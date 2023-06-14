@@ -1,5 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.1
+% v1.1.3
 
 
 NN.OptimizationHistory=zeros(2,1);
@@ -47,6 +47,8 @@ switch solver
     case 'SGDM'
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'SGD'
+        OptimizedNN=StochasticSolver(data,label,NN,option);
+    case 'RMSprop'
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'Auto'
         %------------ First Stage Optimization ----------------------
@@ -470,9 +472,17 @@ disp('------------------------------------------------------')
                     NN.Direction.db{j}=adam.db{j};
 
                 end
-            
+            case "RMSprop"
+                
+                for j=1:NN.depth
+                    [NN.weight{j},NN.fw{j}]=RMSprop(NN.weight{j},NN.fw{j},dw{j});
+                    [NN.bias{j},NN.fb{j}]=RMSprop(NN.bias{j},NN.fb{j},db{j});
+%                     NN.Direction.dw{j}=rmsp.dw{j};    
+%                     NN.Direction.db{j}=rmsp.db{j};
+                    
+                end
             case "SGDM"
-                m=option.Momentum;
+                m=0.9;
 
                 for j=1:NN.depth
                     Direction.weight{j}=(m)*NN.Direction.dw{j}+(1-m)*dw{j};
@@ -496,6 +506,13 @@ disp('------------------------------------------------------')
             Xnew=Xold-s0*d;
         end
         
+        function [Xnew,V,d]=RMSprop(Xold,Vprev,dw)
+            beta=0.999;
+            V=(beta)*Vprev+(1-beta)*(dw.^2);
+            epsilon=(1e-8);
+            d=dw./(sqrt(V)+epsilon);
+            Xnew=Xold-s0*d;
+        end
 
     end
 
