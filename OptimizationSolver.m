@@ -7,6 +7,14 @@ NN.StepSizeHistory=zeros(2,1);
 NN.LineSearchIteration=zeros(2,1);
 NN.numOfData=size(data,2); NN.MeanFactor=1/size(data,2);
 
+if strcmp(NN.Cost,'Entropy')==1
+    NN.MeanFactor=1/size(data,2);
+elseif strcmp(NN.Cost,'MSE')==1
+    NN.MeanFactor=2/size(data,2);
+else
+    NN.MeanFactor=2;
+end
+
 if isfield(option,'Solver')==0
     option.Solver='Auto';
 end
