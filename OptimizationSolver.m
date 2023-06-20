@@ -119,6 +119,9 @@ if strcmp(NN.Cost,'Entropy')==0
     fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
     disp('------------------------------------------------------')
 else
+    OptimizedNN.AccuracyReport=@(data,label,NN) ClassificationReport(data,label,NN);
+    OptimizedNN.Accuracy=OptimizedNN.AccuracyReport(data,label,OptimizedNN);
+    
     OptimizedNN.Predict=@(x) round(OptimizedNN.Evaluate(x));
     HotPrediction=OptimizedNN.Predict(data);
     LabelIndex=OptimizedNN.HotToIndex(label);
@@ -566,4 +569,14 @@ for i=1:NumOfBatch
     end
 
 end
+end
+
+function Accuracy=ClassificationReport(data,label,NN)
+    NN.Predict=@(x) round(NN.Evaluate(x));
+    HotPrediction=NN.Predict(data);
+    LabelIndex=NN.HotToIndex(label);
+    Prediction=NN.HotToIndex(HotPrediction);
+    Correct=LabelIndex==Prediction;
+    Accuracy=double(100*mean(Correct));
+
 end
