@@ -15,6 +15,14 @@ else
     NN.MeanFactor=2;
 end
 
+if isfield(option,'Solver')==0 && strcmp(NN.Cost,'Entropy')==0
+    option.Solver='Auto';
+    NN.Solver=option.Solver;
+elseif isfield(option,'Solver')==0
+    option.Solver='ADAM';
+    NN.Solver=option.Solver;
+end
+
 if isfield(option,'Solver')==0
     option.Solver='Auto';
 end
@@ -100,16 +108,31 @@ else
     Error=label-OptimizedNN.Evaluate(data);
 end
 
-OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
-OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
-OptimizedNN.PreTrained=1;
-disp('------------------------------------------------------')
-FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
-FinalCost=CostFunction(data,label,OptimizedNN);
-fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
-fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
-fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
-disp('------------------------------------------------------')
+if strcmp(NN.Cost,'Entropy')==0
+    OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
+    OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);    
+    disp('------------------------------------------------------')
+    FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
+    FinalCost=CostFunction(data,label,OptimizedNN);
+    fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
+    fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
+    fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
+    disp('------------------------------------------------------')
+else
+    OptimizedNN.Predict=@(x) round(OptimizedNN.Evaluate(x));
+    HotPrediction=OptimizedNN.Predict(data);
+    LabelIndex=OptimizedNN.HotToIndex(label);
+    Prediction=OptimizedNN.HotToIndex(HotPrediction);
+    Correct=LabelIndex==Prediction;
+    OptimizedNN.Accuracy=double(100*mean(Correct));
+    disp('------------------------------------------------------')
+    FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
+    FinalCost=CostFunction(data,label,OptimizedNN);
+    fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
+    fprintf('Accuracy : %6.2f %% \n',OptimizedNN.Accuracy);
+    fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
+    disp('------------------------------------------------------')
+end
 %% Numerical Optimization Solver
 
     function OptimizedNN=StochasticSolver(data,label,NN,option)
