@@ -22,9 +22,10 @@ z=NN.weight{NN.depth}*v+NN.bias{NN.depth};
 
 Memory.A{NN.depth}=NN.OutActive(z);
 Memory.D{NN.depth}=z;
-ErrorVector=2*NN.MeanFactor*(label-Memory.A{NN.depth});
+
+ErrorVector=NN.MeanFactor*(Memory.A{NN.depth}-label);
 % Compute Gradient For Last Layer
-g=-ErrorVector;
+g=ErrorVector;
 dw=NN.weight; db=NN.bias;
 dw{NN.depth}=g*(Memory.A{NN.depth-1}.');
 db{NN.depth}=sum(g,2);
