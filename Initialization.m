@@ -43,14 +43,10 @@ function NN=Initialization(LayerStruct,NN)
     NN.numOfWeight=LayerMatrix(1,:)*LayerMatrix(2,:)';
     NN.numOfBias=sum(LayerMatrix(2,:));
     NN.LayerStruct=LayerMatrix;
-    NN.OutActive=@(x) x;
+    
     
     if isfield(NN,'NetworkType')~=1
-        if NN.depth<8
-            NN.NetworkType='ANN';
-        else
-            NN.NetworkType='ResNet';
-        end
+        NN.NetworkType='ANN';
     end
     ResidualOn=strcmp(NN.NetworkType,'ResNet');
     if isfield(NN,'LineSearcher')==0
@@ -61,7 +57,13 @@ function NN=Initialization(LayerStruct,NN)
         NN.PreTrained=0;
     end
     
-    
+    if strcmp(NN.Cost,'Entropy')==1
+        NN.OutActive=@(x) SoftMax(x);
+        NN.IndexToHot=@(x) IndexToHot(x);
+        NN.HotToIndex=@(x) HotToIndex(x);
+    else
+        NN.OutActive=@(x) x;
+    end
 
 
     activation=NN.ActivationFunction;
@@ -113,17 +115,41 @@ function NN=Initialization(LayerStruct,NN)
 end
 
 function [W,b]=LayerInitialization(v)
-%     rng(1)
+    rng(1)
     InDim=v(1); OutDim=v(2);
     Radius=sqrt(6/(InDim+OutDim));
     temp=rand(OutDim,InDim);
     W=Radius*(temp-0.5*rand(OutDim,InDim));
-
     b=zeros(OutDim,1);
 
 end
 
+function out=SoftMax(x)
+    Max=max(x);
+    x=x-Max; % Improve numerical stability.
+    u=exp(x);
+    out=u./sum(u);
+end
 
+function ScalarClass=HotToIndex(OneHotVector)
+    ScalarClass=zeros(1,size(OneHotVector,2));
+    for i=1:size(OneHotVector,2)
+        Class=find(OneHotVector(:,i));
+        ScalarClass(i)=Class;
+    end
+
+end
+
+function OneHotMatrix=IndexToHot(ScalarClass)
+    NumOfClass=max(ScalarClass);
+    NumOfData=size(ScalarClass,2);
+    OneHotMatrix=zeros(NumOfClass,NumOfData);
+    for i=1:NumOfData
+        HotIndex=ScalarClass(i);
+        OneHotMatrix(HotIndex,i)=1;
+    end
+
+end
 
 function d=Heaviside(x)
     d=double(x>0);
