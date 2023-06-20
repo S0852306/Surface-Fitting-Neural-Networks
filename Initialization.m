@@ -126,11 +126,7 @@ end
 
 
 function d=Heaviside(x)
-    if x>0
-        d=1;
-    else
-        d=0;
-    end
+    d=double(x>0);
 end
 
 function M=IdentityMap(Row,Column)
