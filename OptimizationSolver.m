@@ -110,7 +110,8 @@ end
 
 if strcmp(NN.Cost,'Entropy')==0
     OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
-    OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);    
+    OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
+    
     disp('------------------------------------------------------')
     FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
     FinalCost=CostFunction(data,label,OptimizedNN);
@@ -118,16 +119,14 @@ if strcmp(NN.Cost,'Entropy')==0
     fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
     fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
     disp('------------------------------------------------------')
-else
-    OptimizedNN.AccuracyReport=@(data,label,NN) ClassificationReport(data,label,NN);
-    OptimizedNN.Accuracy=OptimizedNN.AccuracyReport(data,label,OptimizedNN);
     
-    OptimizedNN.Predict=@(x) round(OptimizedNN.Evaluate(x));
-    HotPrediction=OptimizedNN.Predict(data);
-    LabelIndex=OptimizedNN.HotToIndex(label);
-    Prediction=OptimizedNN.HotToIndex(HotPrediction);
-    Correct=LabelIndex==Prediction;
-    OptimizedNN.Accuracy=double(100*mean(Correct));
+else
+
+    OptimizedNN.ComputeAccuracy=@(data,label) ComputeAccuracy(data,label,OptimizedNN);
+    Accuracy=OptimizedNN.ComputeAccuracy(data,label);
+    OptimizedNN.Predict=@(data) ClassPredict(data,OptimizedNN);
+    OptimizedNN.Accuracy=Accuracy;
+    
     disp('------------------------------------------------------')
     FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
     FinalCost=CostFunction(data,label,OptimizedNN);
@@ -571,12 +570,16 @@ for i=1:NumOfBatch
 end
 end
 
-function Accuracy=ClassificationReport(data,label,NN)
-    NN.Predict=@(x) round(NN.Evaluate(x));
-    HotPrediction=NN.Predict(data);
+function Accuracy=ComputeAccuracy(data,label,NN)
+    Probability=NN.Evaluate(data);
+    [~,PredictIndex]=max(Probability);
     LabelIndex=NN.HotToIndex(label);
-    Prediction=NN.HotToIndex(HotPrediction);
-    Correct=LabelIndex==Prediction;
-    Accuracy=double(100*mean(Correct));
+    CorrectVector=LabelIndex==PredictIndex;
+    Accuracy=100*mean(CorrectVector);
 
+end
+
+function Class=ClassPredict(data,NN)
+    Probability=NN.Evaluate(data);
+    [~,Class]=max(Probability);
 end
