@@ -11,7 +11,7 @@
 If you are not familiar with numerical optimization/deep learning, you can also use the following command to automatically configure the solver.
 
 ```
-% Network Structure Set Up
+% Network Structure Set Up, for regression
 LayerStruct=[InputDimension,10,10,10,OutputDimension];
 NN=Initialization(LayerStruct);
 % Solver Set Up
@@ -19,7 +19,16 @@ option.MaxIteration=500;
 NN=OptimizationSolver(data,label,NN,option);
 ```
 "DigitRecognition.mlx" utilizes a simple MLP architecture and achieves an accuracy of **97.6%** on the testing set of the "MNIST" handwritten digit recognition dataset.
-
+```
+% Network Structure Set Up, for classification
+NN.Cost='Entropy';
+LayerStruct=[InputDimension,10,10,10,OutputDimension];
+NN=Initialization(LayerStruct,NN);
+% Solver Set Up
+option.Solver='ADAM'; option.s0=1e-3; % step size
+option.MaxIteration=30; % number of epoch
+NN=OptimizationSolver(data,label,NN,option);
+```
 ![LogoFitR](https://github.com/S0852306/Implementing-Neural-Networks-from-Scratch./assets/111946393/5c7e86e9-cfde-44e6-a69c-af08dfafafa5)
 
 ![image](https://github.com/S0852306/Implementing-Neural-Networks-from-Scratch./assets/111946393/1080ccb6-e6f9-4916-ac9f-05faacf9fce9)
