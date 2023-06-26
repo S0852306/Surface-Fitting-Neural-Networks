@@ -25,7 +25,7 @@ NN.Cost='Entropy';
 LayerStruct=[InputDimension,10,10,10,OutputDimension];
 NN=Initialization(LayerStruct,NN);
 % Solver Set Up
-option.Solver='ADAM'; option.s0=1e-3; % step size
+option.Solver='ADAM'; option.s0=1e-3; % step size option.BatchSize=512;
 option.MaxIteration=30; % number of epoch
 NN=OptimizationSolver(data,label,NN,option);
 ```
