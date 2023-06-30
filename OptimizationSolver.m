@@ -1,5 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.3
+% v1.1.6
 
 
 NN.OptimizationHistory=zeros(2,1);
@@ -264,7 +264,7 @@ end
         H=H0;
 
         NN.Termination=0; NN.OptimizationFail=0;
-        delta=100;
+        delta=1e-3;
         tic
         for m=1:option.MaxIteration
             
@@ -311,7 +311,7 @@ end
                     dp=[dwVec;dbVec];
 
                     if NN.Iteration==1 && strcmp(NN.LineSearcher,'Off')==0
-                        dp=delta*dp/norm(dp);
+                        dp=delta*dp;
                     end
 
                     % Quasi Newton Descent
@@ -367,7 +367,7 @@ end
                         
                         switch DampingCase
                             case 'DoubleDamping'
-                                %Quasi-Newton for DNN, Yi-Ren, Goldfarb 2022
+                                % Quasi-Newton for DNN, Yi-Ren, Goldfarb 2022
                                 mu1=0.2; mu2=0.001;
 
                                 Quadratic=y'*H*y; InvRho=s'*y;
@@ -386,7 +386,7 @@ end
                                 H=H+(Rho^2)*(s'*y+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
 
                             case 'Powell'
-                                %Quasi-Newton for DNN training, Goldfarb 2020  (Double Damping) 
+                                % Quasi-Newton for DNN training, Goldfarb 2020  (Double Damping) 
                                 % Powell's Damping on H, B=I.
                                 mu1=0.2; mu2=0.001;
 
@@ -510,8 +510,6 @@ end
                 for j=1:NN.depth
                     [NN.weight{j},NN.fw{j}]=RMSprop(NN.weight{j},NN.fw{j},dw{j});
                     [NN.bias{j},NN.fb{j}]=RMSprop(NN.bias{j},NN.fb{j},db{j});
-%                     NN.Direction.dw{j}=rmsp.dw{j};    
-%                     NN.Direction.db{j}=rmsp.db{j};
                     
                 end
             case "SGDM"
