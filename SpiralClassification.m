@@ -39,4 +39,3 @@ option.MaxIteration=800;
 NN=OptimizationSolver(data,label,NN,option);
 %%
 
-

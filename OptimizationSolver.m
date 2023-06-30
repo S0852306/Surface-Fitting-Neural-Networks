@@ -17,16 +17,15 @@ end
 
 if isfield(option,'Solver')==0 && strcmp(NN.Cost,'Entropy')==0
     option.Solver='Auto';
-    NN.Solver=option.Solver;
 elseif isfield(option,'Solver')==0
     option.Solver='ADAM';
-    NN.Solver=option.Solver;
 end
 
 if isfield(option,'Solver')==0
     option.Solver='Auto';
 end
 solver=option.Solver;
+NN.Solver=option.Solver;
 
 if isfield(option,'s0')==0
     option.s0=2e-3;
@@ -354,10 +353,6 @@ end
                             NN.Termination=1;
                         end
 
-
-
-
-
                         %-------------------------------------------------
                         if isfield(option,'Damping')==0
                             DampingCase='DoubleDamping';
@@ -553,7 +548,7 @@ end
     end
 
 end
-%% Auxilary Function
+%% Auxiliary Function
 function Sample=Shuffle(data,label,BatchSize)
 NumOfData=numel(data(1,:));
 NumOfBatch=floor(NumOfData/BatchSize)+1;
