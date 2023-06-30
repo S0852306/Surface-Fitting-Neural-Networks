@@ -31,7 +31,7 @@ NN=OptimizationSolver(data,label,NN,option);
 ```
 ![LogoFitR](https://github.com/S0852306/Implementing-Neural-Networks-from-Scratch./assets/111946393/5c7e86e9-cfde-44e6-a69c-af08dfafafa5)
 
-![image](https://github.com/S0852306/Implementing-Neural-Networks-from-Scratch./assets/111946393/1080ccb6-e6f9-4916-ac9f-05faacf9fce9)
+![MNIST7](https://github.com/S0852306/Implementing-Neural-Networks-from-Scratch./assets/111946393/a9c92ab7-e3a2-4948-8f16-c73b106781d2)
 
 # Types of Neural Nets
  1. Ordinary MultiLayer Perceptron 
