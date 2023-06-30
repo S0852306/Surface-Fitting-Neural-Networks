@@ -487,6 +487,7 @@ end
         solver=option.Solver;
         s0=option.s0;
         switch solver
+        
             case "SGD"
 
                 for j=1:NN.depth
@@ -495,8 +496,8 @@ end
                 end
                 
             case "SGDM"
+                
                 m=0.9;
-
                 for j=1:NN.depth
                     NN.FirstMomentW{j}=(m)*NN.FirstMomentW{j}+(1-m)*dw{j};
                     NN.FirstMomentB{j}=(m)*NN.FirstMomentB{j}+(1-m)*db{j};
@@ -546,7 +547,7 @@ end
             beta=0.9;
             Vnew=(beta)*Vprev+(1-beta)*(dw.^2);
             epsilon=(1e-8);
-            d=dw./(sqrt(V)+epsilon);
+            d=dw./(sqrt(Vnew)+epsilon);
         end
 
     end
