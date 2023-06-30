@@ -1,7 +1,6 @@
 function NN=Initialization(LayerStruct,NN)
     
-    switch nargin
-        case 1
+    if nargin==1
             NN=struct;
     end
 
@@ -22,9 +21,7 @@ function NN=Initialization(LayerStruct,NN)
         NN.Cost='MSE';
     end
     
-    if isfield(NN,'MeanFactor')~=1
-        NN.MeanFactor=1;
-    end
+    NN.MeanFactor=1;
 
 
     if isfield(NN,'InputAutoScaling')~=1
@@ -53,9 +50,8 @@ function NN=Initialization(LayerStruct,NN)
         NN.LineSearcher='BackTrack';
     end
     
-    if isfield(NN,'PreTrained')==0
-        NN.PreTrained=0;
-    end
+    NN.PreTrained=0;
+
     
     if strcmp(NN.Cost,'Entropy')==1
         NN.OutActive=@(x) SoftMax(x);
@@ -85,24 +81,19 @@ function NN=Initialization(LayerStruct,NN)
     else
         NN.active=NN.ActivationFunction;
         
-
     end
     
     for i=1:NumOfLayer
         [W,b]=LayerInitialization(LayerMatrix(:,i));
-        NN.weight{i}=W;
-        NN.bias{i}=b;
+        NN.weight{i}=W; NN.bias{i}=b;
+        SizeW=size(W); SizeB=size(b);
+        ZeroW=zeros(SizeW); ZeroB=zeros(SizeB);
 
-        NN.Direction.dw{i}=0*W;
-        NN.Direction.db{i}=0*b;
         
-        NN.PathDw{i}=0*W;
-        NN.PathDb{i}=0*b;
-        NN.PrevDw{i}=0*W;
-        NN.PrevDb{i}=0*b;
-
-        NN.fw{i}=0*W; NN.sw{i}=0*W;
-        NN.fb{i}=0*b; NN.sb{i}=0*b;
+        NN.FirstMomentW{i}=ZeroW;
+        NN.FirstMomentB{i}=ZeroB;
+        NN.SecondMomentW{i}=ZeroW;
+        NN.SecondMomentB{i}=ZeroB;
 
     end
 
@@ -132,7 +123,7 @@ function out=SoftMax(x)
 end
 
 function ScalarClass=HotToIndex(OneHotVector)
-    ScalarClass=zeros(1,size(OneHotVector,2));
+    ScalarClass=zeros(1,size(OneHotVector,1));
     for i=1:size(OneHotVector,2)
         Class=find(OneHotVector(:,i));
         ScalarClass(i)=Class;
