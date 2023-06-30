@@ -488,61 +488,65 @@ end
         s0=option.s0;
         switch solver
             case "SGD"
-                Direction.weight=dw;
-                Direction.bias=db;
-                for j=1:NN.depth
-                    NN.weight{j}=NN.weight{j}-s0*Direction.weight{j};
-                    NN.bias{j}=NN.bias{j}-s0*Direction.bias{j};
-                end
-            case "ADAM"
 
                 for j=1:NN.depth
-                    [NN.weight{j},NN.fw{j},NN.sw{j},adam.dw{j}]=...
-                        ADAM(NN.weight{j},NN.fw{j},NN.sw{j},dw{j},NN.StochasticCounter);
-                    NN.Direction.dw{j}=adam.dw{j};
-                    [NN.bias{j},NN.fb{j},NN.sb{j},adam.db{j}]=...
-                        ADAM(NN.bias{j},NN.fb{j},NN.sb{j},db{j},NN.StochasticCounter);
-                    NN.Direction.db{j}=adam.db{j};
-
+                    NN.weight{j}=NN.weight{j}-s0*dw{j};
+                    NN.bias{j}=NN.bias{j}-s0*db{j};
                 end
-            case "RMSprop"
                 
-                for j=1:NN.depth
-                    [NN.weight{j},NN.fw{j}]=RMSprop(NN.weight{j},NN.fw{j},dw{j});
-                    [NN.bias{j},NN.fb{j}]=RMSprop(NN.bias{j},NN.fb{j},db{j});
-                    
-                end
             case "SGDM"
                 m=0.9;
 
                 for j=1:NN.depth
-                    Direction.weight{j}=(m)*NN.Direction.dw{j}+(1-m)*dw{j};
-                    Direction.bias{j}=(m)*NN.Direction.db{j}+(1-m)*db{j};
-                    NN.weight{j}=NN.weight{j}-s0*Direction.weight{j};
-                    NN.bias{j}=NN.bias{j}-s0*Direction.bias{j};
+                    NN.FirstMomentW{j}=(m)*NN.FirstMomentW{j}+(1-m)*dw{j};
+                    NN.FirstMomentB{j}=(m)*NN.FirstMomentB{j}+(1-m)*db{j};
+                    NN.weight{j}=NN.weight{j}-s0*NN.FirstMomentW{j};
+                    NN.bias{j}=NN.bias{j}-s0*NN.FirstMomentB{j};
                 end
-                NN.Direction.dw=Direction.weight;
-                NN.Direction.db=Direction.bias;
+                
+            case "RMSprop"
+
+                for j=1:NN.depth
+
+                    [DescentW,NN.FirstMomentW{j}]=RMSprop(dw{j},NN.FirstMomentW{j});
+                    [DescentB,NN.FirstMomentB{j}]=RMSprop(db{j},NN.FirstMomentB{j});
+                    NN.weight{j}=NN.weight{j}-s0*DescentW;
+                    NN.bias{j}=NN.bias{j}-s0*DescentB;
+
+                end
+                
+            case "ADAM"
+
+                for j=1:NN.depth
+
+                    [DescentW,FW,SW]=ADAM(dw{j},NN.FirstMomentW{j},NN.SecondMomentW{j});
+                    [DescentB,FB,SB]=ADAM(db{j},NN.FirstMomentB{j},NN.SecondMomentB{j});
+
+                    NN.FirstMomentW{j}=FW; NN.SecondMomentW{j}=SW;
+                    NN.FirstMomentB{j}=FB; NN.SecondMomentB{j}=SB;
+                    NN.weight{j}=NN.weight{j}-s0*DescentW;
+                    NN.bias{j}=NN.bias{j}-s0*DescentB;
+                    
+                end
 
         end
         UpdatedNN=NN;
 
-        function [Xnew,Mnew,Vnew,d]=ADAM(Xold,Mprev,Vprev,dw,iter)
+        function [d,Mnew,Vnew]=ADAM(dw,Mprev,Vprev)
+            iter=NN.StochasticCounter;
             beta1=0.9; beta2=0.999;
             Mnew=(beta1)*Mprev+(1-beta1)*dw;
             Vnew=(beta2)*Vprev+(1-beta2)*(dw.^2);
             Mt=Mnew/(1-beta1^iter); Vt=Vnew/(1-beta2^iter);
             epsilon=(1e-8);
             d=Mt./(sqrt(Vt)+epsilon);
-            Xnew=Xold-s0*d;
         end
         
-        function [Xnew,V,d]=RMSprop(Xold,Vprev,dw)
-            beta=0.999;
-            V=(beta)*Vprev+(1-beta)*(dw.^2);
+        function [d,Vnew]=RMSprop(dw,Vprev)
+            beta=0.9;
+            Vnew=(beta)*Vprev+(1-beta)*(dw.^2);
             epsilon=(1e-8);
             d=dw./(sqrt(V)+epsilon);
-            Xnew=Xold-s0*d;
         end
 
     end
