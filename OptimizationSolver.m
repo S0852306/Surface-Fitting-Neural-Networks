@@ -1,5 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.6
+% v1.1.7
 
 
 NN.OptimizationHistory=zeros(2,1);
@@ -12,10 +12,11 @@ if strcmp(NN.Cost,'Entropy')==1
 elseif strcmp(NN.Cost,'MSE')==1
     NN.MeanFactor=2/size(data,2);
 elseif strcmp(NN.Cost,'MAE')==1
-    NN.MeanFactor=2/size(data,2);    
+    NN.MeanFactor=1/size(data,2);    
 elseif strcmp(NN.Cost,'SSE')==1
     NN.MeanFactor=2;
 end
+
 if isfield(option,'Solver')==0 && strcmp(NN.Cost,'Entropy')==0
     option.Solver='Auto';
 elseif isfield(option,'Solver')==0
@@ -110,7 +111,7 @@ end
 
 if strcmp(NN.Cost,'Entropy')==0
     OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
-    OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
+    OptimizedNN.MeanAbsoluteError=NN.MeanFactor*sum(abs(Error),[1 2]);
     
     disp('------------------------------------------------------')
     FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
