@@ -17,6 +17,9 @@ switch Cost
     case 'MSE'
         temp=(label-predict).^2;
         E=NN.MeanFactor*sum(temp,[1 2]);
+    case 'MAE'
+        temp=abs(label-predict);
+        E=NN.MeanFactor*sum(temp,[1 2]);
     case 'Entropy'
         temp=-label.*log(max(predict,1e-8));
         E=NN.MeanFactor*sum(temp,[1 2]);
