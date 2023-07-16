@@ -11,10 +11,11 @@ if strcmp(NN.Cost,'Entropy')==1
     NN.MeanFactor=1/size(data,2);
 elseif strcmp(NN.Cost,'MSE')==1
     NN.MeanFactor=2/size(data,2);
-else
+elseif strcmp(NN.Cost,'MAE')==1
+    NN.MeanFactor=2/size(data,2);    
+elseif strcmp(NN.Cost,'SSE')==1
     NN.MeanFactor=2;
 end
-
 if isfield(option,'Solver')==0 && strcmp(NN.Cost,'Entropy')==0
     option.Solver='Auto';
 elseif isfield(option,'Solver')==0
