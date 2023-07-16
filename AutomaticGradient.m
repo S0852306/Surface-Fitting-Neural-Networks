@@ -23,9 +23,11 @@ z=NN.weight{NN.depth}*v+NN.bias{NN.depth};
 Memory.A{NN.depth}=NN.OutActive(z);
 Memory.D{NN.depth}=z;
 
-ErrorVector=NN.MeanFactor*(Memory.A{NN.depth}-label);
+
 if strcmp(NN.Cost,'MAE')==1
     ErrorVector=NN.MeanFactor*sign(Memory.A{NN.depth}-label);
+else
+    ErrorVector=NN.MeanFactor*(Memory.A{NN.depth}-label);
 end
 
 % Compute Gradient For Last Layer
