@@ -59,6 +59,8 @@ end
 switch solver
     case 'BFGS'
         OptimizedNN=QuasiNewtonSolver(data,label,NN,option);
+    case 'AdamW'
+        OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'ADAM'
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'SGDM'
@@ -111,7 +113,7 @@ end
 
 if strcmp(NN.Cost,'Entropy')==0
     OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
-    OptimizedNN.MeanAbsoluteError=NN.MeanFactor*sum(abs(Error),[1 2]);
+    OptimizedNN.MeanAbsoluteError=sum(abs(Error),[1 2])/NN.numOfData;
     
     disp('------------------------------------------------------')
     FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
@@ -180,7 +182,13 @@ end
         tic
         for j=1:option.MaxIteration
             NN.Iteration=j;
-            Sample=Shuffle(data,label,BatchSize);
+            
+            if option.BatchSize==NN.numOfData
+                Sample.Data{1}=data; Sample.Label{1}=label;
+            else
+                Sample=Shuffle(data,label,BatchSize);
+            end
+            
             for k=1:numel(Sample.Label)
                 Counter=Counter+1;
                 NN.StochasticCounter=Counter;
@@ -525,6 +533,20 @@ end
                     NN.weight{j}=NN.weight{j}-s0*DescentW;
                     NN.bias{j}=NN.bias{j}-s0*DescentB;
                     
+                end
+            case "AdamW"
+                r=option.Regulator;
+                for j=1:NN.depth
+
+                    [DescentW,FW,SW]=ADAM(dw{j},NN.FirstMomentW{j},NN.SecondMomentW{j});
+                    [DescentB,FB,SB]=ADAM(db{j},NN.FirstMomentB{j},NN.SecondMomentB{j});
+
+                    NN.FirstMomentW{j}=FW; NN.SecondMomentW{j}=SW;
+                    NN.FirstMomentB{j}=FB; NN.SecondMomentB{j}=SB;
+
+                    NN.weight{j}=NN.weight{j}-s0*(DescentW+r*NN.weight{j});
+                    NN.bias{j}=NN.bias{j}-s0*(DescentB+r*NN.bias{j});
+
                 end
 
         end
