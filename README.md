@@ -2,7 +2,6 @@
 **Neural networks for multivariable function approximation & classification.**
 # Introduction
 * Neural networks are universal function approximators, which means that given enough parameters, a neural net can approximate any multivariable continuous function to any desired level of accuracy.
-* Many built-in functions in MATLAB only provide functionality for curve fitting (1D) or surface fitting (2D). In contrast, neural networks can handle more general and higher-dimensional fitting problems. 
 * More Info: https://tinyurl.com/wre9r5uk 
 (MATLAB File Exchange)
 
