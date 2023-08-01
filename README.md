@@ -10,7 +10,6 @@
 "GeneralGuide.mlx" provide a general workflow and detailed instructions on how to configure the solver.
 If you are not familiar with numerical optimization or deep learning, you can also use the following command to automatically configure the solver.
 
-[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=S0852306/Implementing-neural-networks-from-scratch&file=&file=<GeneralGuide.mlx>)
 ```
 % Network Structure Set Up, for regression
 LayerStruct=[InputDimension,10,10,10,OutputDimension];
