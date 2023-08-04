@@ -21,7 +21,7 @@ NN=OptimizationSolver(data,label,NN,option);
 ```
 % Network Structure Set Up, for classification
 NN.Cost='Entropy';
-LayerStruct=[InputDimension,10,10,10,OutputDimension];
+LayerStruct=[InputDimension,128,64,16,OutputDimension];
 NN=Initialization(LayerStruct,NN);
 % Solver Set Up
 option.Solver='ADAM'; option.s0=1e-3; % step size option.BatchSize=512;
