@@ -110,7 +110,7 @@ else
     OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
     Error=label-OptimizedNN.Evaluate(data);
 end
-
+% L.Y.R
 if strcmp(NN.Cost,'Entropy')==0
     OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
     OptimizedNN.MeanAbsoluteError=sum(abs(Error),[1 2])/NN.numOfData;
