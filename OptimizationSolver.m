@@ -1,5 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.7
+% v1.1.7 L.Y.R
 
 
 NN.OptimizationHistory=zeros(2,1);
@@ -110,7 +110,7 @@ else
     OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
     Error=label-OptimizedNN.Evaluate(data);
 end
-% L.Y.R
+% R.O.Y
 if strcmp(NN.Cost,'Entropy')==0
     OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
     OptimizedNN.MeanAbsoluteError=sum(abs(Error),[1 2])/NN.numOfData;
