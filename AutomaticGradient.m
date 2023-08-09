@@ -28,8 +28,18 @@ else
     ErrorVector=NN.MeanFactor*(Memory.A{NN.depth}-label);
 end
 
+if size(label,2)==NN.numOfData && NN.WeightedFlag==1
+    DataWeightMatrix=NN.Weighted;
+elseif size(label,2)~=NN.numOfData && NN.WeightedFlag==1
+    DataWeightMatrix=NN.SampleWeight;
+end
+
 % Compute Gradient For Last Layer
-g=ErrorVector;
+if NN.WeightedFlag==0
+    g=ErrorVector;
+else
+    g=DataWeightMatrix.*ErrorVector;
+end
 dw=NN.weight; db=NN.bias;
 dw{NN.depth}=g*(Memory.A{NN.depth-1}.');
 db{NN.depth}=sum(g,2);
