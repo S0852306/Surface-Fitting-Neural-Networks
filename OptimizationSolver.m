@@ -1,6 +1,5 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
-% v1.1.7
-
+% v1.1.8
 
 NN.OptimizationHistory=zeros(2,1);
 NN.StepSizeHistory=zeros(2,1);
@@ -54,6 +53,15 @@ end
 
 if isfield(NN,'activeDerivate')==0
     disp('Please provide the derivatives of activation functions.');
+end
+
+WeightedFlag=isfield(option,'weighted');
+if WeightedFlag==1
+    NN.SampleWeight=[];
+    NN.Weighted=option.weighted;
+    NN.WeightedFlag=1;
+else
+    NN.WeightedFlag=0;
 end
 
 switch solver
@@ -194,6 +202,9 @@ end
                 NN.StochasticCounter=Counter;
                 ShuffledData=Sample.Data{k};
                 ShuffledLabel=Sample.Label{k};
+                if NN.WeightedFlag==1
+                    NN.SampleWeight=NN.Weighted(Sample.Index{k});
+                end
                 [dw,db]=AutoGrad(ShuffledData,ShuffledLabel,NN);
                 NN=StochasticUpdateRule(dw,db,NN,option);
                 BatchCost(Counter)=CostFunction(ShuffledData,ShuffledLabel,NN);
@@ -583,10 +594,12 @@ for i=1:NumOfBatch
         Rand=Index((i-1)*BatchSize+1:i*BatchSize);
         Sample.Data{i}=data(:,Rand);
         Sample.Label{i}=label(:,Rand);
+        Sample.Index{i}=Rand;
     elseif i==NumOfBatch && LastBatch~=0
         Rand=Index(NumOfData-LastBatch+1:end);
         Sample.Data{i}=data(:,Rand);
         Sample.Label{i}=label(:,Rand);
+        Sample.Index{i}=Rand;
     end
 
 end
