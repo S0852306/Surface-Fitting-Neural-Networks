@@ -1,6 +1,6 @@
 clear; clc; close all;
 %% Import data
-n=50;
+n=20;
 x=linspace(-2,2,n);
 y=linspace(-2,2,n);
 n1=numel(x); n2=n1;
@@ -27,7 +27,7 @@ NN.NetworkType='ANN';
 NN.InputAutoScaling='off';
 NN.labelAutoScaling='on';
 NN=Initialization(LayerStruct,NN);
-NN1=NN;
+
 %% First Order Solver Set Up
 
 
@@ -61,4 +61,4 @@ hold on
 n1=numel(x); n2=numel(y);
 surf(X,Y,reshape(Prediction(slice,:),n1,n2))
 title('Neural Network Fit')
-legend('data','Fitting')
+legend('Data','Fitting')

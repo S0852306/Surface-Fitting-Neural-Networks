@@ -22,8 +22,6 @@ z=NN.weight{NN.depth}*v+NN.bias{NN.depth};
 
 Memory.A{NN.depth}=NN.OutActive(z);
 Memory.D{NN.depth}=z;
-
-
 if strcmp(NN.Cost,'MAE')==1
     ErrorVector=NN.MeanFactor*sign(Memory.A{NN.depth}-label);
 else

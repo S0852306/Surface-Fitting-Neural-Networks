@@ -1,9 +1,16 @@
 function Report=FittingReport(data,label,NN)
 close all
 prediction=NN.Evaluate(data);
+SST=sum((label-mean(label,2)).^2,2);
 error=label-prediction;
+SquareError=error.^2;
 Report.ErrorVector=error;
 Report.Prediction=prediction;
+Report.MSE=mean(SquareError,2);
+Report.SSE=sum(SquareError,2);
+Report.MAE=mean(abs(error),2);
+Report.RMSE=sqrt(Report.MSE);
+Report.Rsquared=1-Report.SSE./SST;
 NumOfOutput=size(label,1);
 if NumOfOutput==1
     Report.MeanAbsoluteError=mean(abs(error));
@@ -18,7 +25,6 @@ if NumOfOutput==1
     hold off
     title('Predict v.s. Actual')
 else
-    Report.MeanAbsoluteError=mean(abs(error),2);
     figure;
     
     for i=1:NumOfOutput
