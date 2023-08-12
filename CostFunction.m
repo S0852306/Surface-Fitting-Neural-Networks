@@ -7,11 +7,39 @@ switch NetworkType
     case 'ResNet'
         Net=@(x,NN) ResNet(x,NN);
 end
-temp=(label-Net(data,NN)).^2;
+
+predict=Net(data,NN);
+if size(label,2)==NN.numOfData && NN.WeightedFlag==1
+    DataWeightMatrix=NN.Weighted;
+elseif size(label,2)~=NN.numOfData && NN.WeightedFlag==1
+    DataWeightMatrix=NN.SampleWeight;
+end
+
 switch Cost
     case 'SSE'
+        if isfield(NN,'Weighted')~=1
+            temp=(label-predict).^2;
+        else
+            temp=DataWeightMatrix.*(label-predict).^2;
+        end
         E=sum(temp,[1 2]);
     case 'MSE'
-        E=mean(temp,[1 2]);
+        if isfield(NN,'Weighted')~=1
+            temp=(label-predict).^2;
+        else
+            temp=DataWeightMatrix.*(label-predict).^2;
+        end
+        E=NN.MeanFactor*sum(temp,[1 2]);
+    case 'MAE'
+        if isfield(NN,'Weighted')~=1
+            temp=abs(label-predict);
+        else
+            temp=DataWeightMatrix.*abs(label-predict);
+        end
+        E=NN.MeanFactor*sum(temp,[1 2]);
+        
+    case 'Entropy'
+        temp=-label.*log(max(predict,1e-8));
+        E=NN.MeanFactor*sum(temp,[1 2]);
 end
 FunctionOutput=E;

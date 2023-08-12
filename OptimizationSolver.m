@@ -1,19 +1,106 @@
 function OptimizedNN=OptimizationSolver(data,label,NN,option)
+% v1.1.8
 
-solver=option.Solver;
 NN.OptimizationHistory=zeros(2,1);
 NN.StepSizeHistory=zeros(2,1);
 NN.LineSearchIteration=zeros(2,1);
+NN.numOfData=size(data,2); NN.MeanFactor=1/size(data,2);
+
+if strcmp(NN.Cost,'Entropy')==1
+    NN.MeanFactor=1/size(data,2);
+elseif strcmp(NN.Cost,'MSE')==1
+    NN.MeanFactor=2/size(data,2);
+elseif strcmp(NN.Cost,'MAE')==1
+    NN.MeanFactor=1/size(data,2);    
+elseif strcmp(NN.Cost,'SSE')==1
+    NN.MeanFactor=2;
+end
+
+if isfield(option,'Solver')==0 && strcmp(NN.Cost,'Entropy')==0
+    option.Solver='Auto';
+elseif isfield(option,'Solver')==0
+    option.Solver='ADAM';
+end
+
+if isfield(option,'Solver')==0
+    option.Solver='Auto';
+end
+solver=option.Solver;
+NN.Solver=option.Solver;
+
+if isfield(option,'s0')==0
+    option.s0=2e-3;
+end
+
+if isfield(option,'BatchSize')==0
+    option.BatchSize=round(size(data,2)/10);
+end
+
+if strcmp(NN.InputAutoScaling,'on')
+    InputScaleVector=std(data,0,2);
+    InputCenterVector=mean(data,2);
+    NN.InputCenterVector=InputCenterVector./InputScaleVector;
+    NN.InputScaleVector=1./InputScaleVector;
+end
+
+if strcmp(NN.LabelAutoScaling,'on')
+    LabelScaleVector=std(label,0,2);
+    LabelCenterVector=mean(label,2);
+    label=(label-LabelCenterVector)./LabelScaleVector;
+    NN.LabelCenterVector=LabelCenterVector;
+    NN.LabelScaleVector=LabelScaleVector;
+end
+
+if isfield(NN,'activeDerivate')==0
+    disp('Please provide the derivatives of activation functions.');
+end
+
+WeightedFlag=isfield(option,'weighted');
+if WeightedFlag==1
+    NN.SampleWeight=[];
+    NN.Weighted=option.weighted;
+    NN.WeightedFlag=1;
+else
+    NN.WeightedFlag=0;
+end
 
 switch solver
     case 'BFGS'
         OptimizedNN=QuasiNewtonSolver(data,label,NN,option);
+    case 'AdamW'
+        OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'ADAM'
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'SGDM'
         OptimizedNN=StochasticSolver(data,label,NN,option);
     case 'SGD'
         OptimizedNN=StochasticSolver(data,label,NN,option);
+    case 'RMSprop'
+        OptimizedNN=StochasticSolver(data,label,NN,option);
+    case 'Auto'
+        %------------ First Stage Optimization ----------------------
+        tic
+        if isfield(option,'MaxIteration')==1
+            TotalIteration=option.MaxIteration;
+        else
+            TotalIteration=800;
+        end
+        option.Solver='ADAM';
+        option.s0=2e-3;
+        option.MaxIteration=round(TotalIteration/4);
+        option.BatchSize=round(size(data,2)/10);
+        NN=StochasticSolver(data,label,NN,option);
+
+        disp('------------------------------------------------------')
+        DisplayWord=['First Stage Optimization Finished in  ', num2str(option.MaxIteration), '  Iteration.'];
+        disp(DisplayWord)
+        disp('------------------------------------------------------')
+
+        %------------ Second Stage Optimization ----------------------
+        option.Solver='BFGS';
+        option.MaxIteration=TotalIteration-round(TotalIteration/4);
+        OptimizedNN=QuasiNewtonSolver(data,label,NN,option);
+        NN.OptimizationTime=toc;
 end
 
 NetworkType=NN.NetworkType;
@@ -23,17 +110,42 @@ switch NetworkType
     case 'ResNet'
         Net=@(x,NN) ResNet(x,NN);
 end
-OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
-Error=label-OptimizedNN.Evaluate(data);
-OptimizedNN.MeanAbsoluteError=mean(abs(Error),[1 2]);
-OptimizedNN.PreTrained=1;
-disp('------------------------------------------------------')
-FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
-FinalCost=CostFunction(data,label,OptimizedNN);
-fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
-fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
-fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
-disp('------------------------------------------------------')
+
+if strcmp(NN.LabelAutoScaling,'on')==1
+    OptimizedNN.Evaluate=@(x) NN.LabelScaleVector.*Net(x,OptimizedNN)+NN.LabelCenterVector;
+    Error=(NN.LabelScaleVector.*label+NN.LabelCenterVector)-OptimizedNN.Evaluate(data);
+else
+    OptimizedNN.Evaluate=@(x) Net(x,OptimizedNN);
+    Error=label-OptimizedNN.Evaluate(data);
+end
+
+if strcmp(NN.Cost,'Entropy')==0
+    OptimizedNN.Derivate=@(x) AutomaticDerivate(x,OptimizedNN);
+    OptimizedNN.MeanAbsoluteError=sum(abs(Error),[1 2])/NN.numOfData;
+    
+    disp('------------------------------------------------------')
+    FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
+    FinalCost=CostFunction(data,label,OptimizedNN);
+    fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
+    fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
+    fprintf('Mean Absolute Error : %8.4f\n',OptimizedNN.MeanAbsoluteError)
+    disp('------------------------------------------------------')
+    
+else
+
+    OptimizedNN.ComputeAccuracy=@(data,label) ComputeAccuracy(data,label,OptimizedNN);
+    Accuracy=OptimizedNN.ComputeAccuracy(data,label);
+    OptimizedNN.Predict=@(data) ClassPredict(data,OptimizedNN);
+    OptimizedNN.Accuracy=Accuracy;
+    
+    disp('------------------------------------------------------')
+    FormatSpec = 'Max Iteration : %d , Cost : %16.8f \n';
+    FinalCost=CostFunction(data,label,OptimizedNN);
+    fprintf(FormatSpec,OptimizedNN.Iteration,FinalCost);
+    fprintf('Accuracy : %6.2f %% \n',OptimizedNN.Accuracy);
+    fprintf('Optimization Time : %5.1f\n',OptimizedNN.OptimizationTime);
+    disp('------------------------------------------------------')
+end
 %% Numerical Optimization Solver
 
     function OptimizedNN=StochasticSolver(data,label,NN,option)
@@ -44,7 +156,7 @@ disp('------------------------------------------------------')
         if isfield(option,'GradientSolver')==0
             switch NetworkType
                 case 'ANN'
-                    AutoGrad=@(data,label,NN) ElementWiseAG(data,label,NN);
+                    AutoGrad=@(data,label,NN) AutomaticGradient(data,label,NN);
                 case'ResNet'
                     AutoGrad=@(data,label,NN) ElementWiseRNAG(data,label,NN);
             end
@@ -78,15 +190,25 @@ disp('------------------------------------------------------')
         tic
         for j=1:option.MaxIteration
             NN.Iteration=j;
-            Sample=Shuffle(data,label,BatchSize);
+            
+            if option.BatchSize==NN.numOfData
+                Sample.Data{1}=data; Sample.Label{1}=label;
+            else
+                Sample=Shuffle(data,label,BatchSize);
+            end
+            
             for k=1:numel(Sample.Label)
                 Counter=Counter+1;
                 NN.StochasticCounter=Counter;
                 ShuffledData=Sample.Data{k};
                 ShuffledLabel=Sample.Label{k};
+                if NN.WeightedFlag==1
+                    NN.SampleWeight=NN.Weighted(Sample.Index{k});
+                end
                 [dw,db]=AutoGrad(ShuffledData,ShuffledLabel,NN);
                 NN=StochasticUpdateRule(dw,db,NN,option);
                 BatchCost(Counter)=CostFunction(ShuffledData,ShuffledLabel,NN);
+                
             end
 
             CurrentCost=CostFunction(data,label,NN);
@@ -107,18 +229,19 @@ disp('------------------------------------------------------')
     function OptimizedNN=QuasiNewtonSolver(data,label,NN,option)
         
         if isfield(NN,'TerminationContion')==0
-            TerminationNorm=1e-4;
+            TerminationNorm=1e-5;
         else
             TerminationNorm=option.TerminateCondition;
         end
 
         
         NetworkType=NN.NetworkType;
-        if strcmp(NN.LineSearcher,'Off')==0
+        
+        if isfield(option,'Damping')==0
             option.Damping='DoubleDamping';
         end
 
-        if isfield(option,'Damping')==0 
+        if strcmp(NN.LineSearcher,'Off')==1
             option.Damping='DoubleDamping';
         end
         NN.Damping=option.Damping;
@@ -127,7 +250,7 @@ disp('------------------------------------------------------')
         if isfield(option,'GradientSolver')==0
             switch NetworkType
                 case 'ANN'
-                    AutoGrad=@(data,label,NN) ElementWiseAG(data,label,NN);
+                    AutoGrad=@(data,label,NN) AutomaticGradient(data,label,NN);
                 case'ResNet'
                     AutoGrad=@(data,label,NN) ElementWiseRNAG(data,label,NN);
             end
@@ -161,7 +284,7 @@ disp('------------------------------------------------------')
         H=H0;
 
         NN.Termination=0; NN.OptimizationFail=0;
-        delta=100;
+        delta=1e-3;
         tic
         for m=1:option.MaxIteration
             
@@ -192,10 +315,12 @@ disp('------------------------------------------------------')
         OptimizedNN=NN;
 
         function UpdatedNN=QuasiNewtonUpdate(NN)
+
             solver=option.Solver;
             switch solver
-
+                
                 case 'BFGS'
+
                     dw=dwNew; db=dbNew;
                     dwVec=LocalMtoV(dw);
                     dbVec=LocalMtoV(db);
@@ -206,7 +331,7 @@ disp('------------------------------------------------------')
                     dp=[dwVec;dbVec];
 
                     if NN.Iteration==1 && strcmp(NN.LineSearcher,'Off')==0
-                        dp=delta*dp/norm(dp);
+                        dp=delta*dp;
                     end
 
                     % Quasi Newton Descent
@@ -250,10 +375,35 @@ disp('------------------------------------------------------')
                         end
 
                         %-------------------------------------------------
-
-                        DampingCase=option.Damping;
+                        if isfield(option,'Damping')==0
+                            DampingCase='DoubleDamping';
+                        else
+                            DampingCase=option.Damping;
+                        end
+                        
                         switch DampingCase
                             case 'DoubleDamping'
+                                % Quasi-Newton for DNN, Yi-Ren, Goldfarb 2022
+                                mu1=0.2; mu2=0.001;
+
+                                Quadratic=y'*H*y; InvRho=s'*y;
+                                if InvRho<mu1*Quadratic
+                                    theta=(1-mu1)*Quadratic/(Quadratic-InvRho);
+                                    NN.CurvatureConditon(m)=0;
+                                else
+                                    theta=1;
+                                    NN.CurvatureConditon(m)=1;
+                                end
+                                s=theta*s+(1-theta)*H*y;
+                                
+                                y=y+mu2*s;
+                                %LM Damping
+                                Rho=1/(s'*y);
+                                H=H+(Rho^2)*(s'*y+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
+
+                            case 'Powell'
+                                % Quasi-Newton for DNN training, Goldfarb 2020  (Double Damping) 
+                                % Powell's Damping on H, B=I.
                                 mu1=0.2; mu2=0.001;
 
                                 Quadratic=y'*H*y; InvRho=s'*y;
@@ -273,23 +423,10 @@ disp('------------------------------------------------------')
                                 end
                                 
                                 y=theta2*y+(1-theta2)*s;
-                                Rho=1/(s'*y);
-                                H=H+(Rho^2)*(NewInvRho+y'*H*y)*(s*s')-Rho*(H*y*s'+s*y'*H);
-
-                            case 'Powell'
-                                mu=0.2;
-                                Quadratic =y'*H*y; InvRho=s'*y;
-                                if InvRho<mu*Quadratic
-                                    theta=(1-mu)/(1-InvRho/Quadratic);
-                                    NN.CurvatureConditon(m)=0;
-                                else
-                                    theta=1;
-                                    NN.CurvatureConditon(m)=1;
+                                Rho=1/(s'*y); InvRho=s'*y; Quadratic=y'*H*y;
+                                if Quadratic*InvRho<=2/mu1
+                                    H=H+(Rho^2)*(InvRho+Quadratic)*(s*s')-Rho*(H*y*s'+s*y'*H);
                                 end
-                                s=theta*s+(1-theta)*H*y;
-                                NewInvRho=s'*y; Rho=1/(NewInvRho);
-                                H=H+(Rho^2)*(NewInvRho+Quadratic)*(s*s')-Rho*(H*y*s'+s*y'*H);
-
                             case 'Skip'
                                 Rho=1/(s'*y); Quadratic=y'*H*y;
                                 if rho>1e-8
@@ -310,6 +447,7 @@ disp('------------------------------------------------------')
                         UpdatedNN=NN;
                     end
             end
+
 
             %%
             function ParaStruct=LocalVtoM(v)
@@ -365,54 +503,87 @@ disp('------------------------------------------------------')
         solver=option.Solver;
         s0=option.s0;
         switch solver
+        
             case "SGD"
-                Direction.weight=dw;
-                Direction.bias=db;
+
                 for j=1:NN.depth
-                    NN.weight{j}=NN.weight{j}-s0*Direction.weight{j};
-                    NN.bias{j}=NN.bias{j}-s0*Direction.bias{j};
+                    NN.weight{j}=NN.weight{j}-s0*dw{j};
+                    NN.bias{j}=NN.bias{j}-s0*db{j};
                 end
+                
+            case "SGDM"
+                
+                m=0.9;
+                for j=1:NN.depth
+                    NN.FirstMomentW{j}=(m)*NN.FirstMomentW{j}+(1-m)*dw{j};
+                    NN.FirstMomentB{j}=(m)*NN.FirstMomentB{j}+(1-m)*db{j};
+                    NN.weight{j}=NN.weight{j}-s0*NN.FirstMomentW{j};
+                    NN.bias{j}=NN.bias{j}-s0*NN.FirstMomentB{j};
+                end
+                
+            case "RMSprop"
+
+                for j=1:NN.depth
+
+                    [DescentW,NN.FirstMomentW{j}]=RMSprop(dw{j},NN.FirstMomentW{j});
+                    [DescentB,NN.FirstMomentB{j}]=RMSprop(db{j},NN.FirstMomentB{j});
+                    NN.weight{j}=NN.weight{j}-s0*DescentW;
+                    NN.bias{j}=NN.bias{j}-s0*DescentB;
+
+                end
+                
             case "ADAM"
 
                 for j=1:NN.depth
-                    [NN.weight{j},NN.fw{j},NN.sw{j},adam.dw{j}]=...
-                        ADAM(NN.weight{j},NN.fw{j},NN.sw{j},dw{j},NN.StochasticCounter);
-                    NN.Direction.dw{j}=adam.dw{j};
-                    [NN.bias{j},NN.fb{j},NN.sb{j},adam.db{j}]=...
-                        ADAM(NN.bias{j},NN.fb{j},NN.sb{j},db{j},NN.StochasticCounter);
-                    NN.Direction.db{j}=adam.db{j};
 
+                    [DescentW,FW,SW]=ADAM(dw{j},NN.FirstMomentW{j},NN.SecondMomentW{j});
+                    [DescentB,FB,SB]=ADAM(db{j},NN.FirstMomentB{j},NN.SecondMomentB{j});
+
+                    NN.FirstMomentW{j}=FW; NN.SecondMomentW{j}=SW;
+                    NN.FirstMomentB{j}=FB; NN.SecondMomentB{j}=SB;
+                    NN.weight{j}=NN.weight{j}-s0*DescentW;
+                    NN.bias{j}=NN.bias{j}-s0*DescentB;
+                    
                 end
-            
-            case "SGDM"
-                m=option.Momentum;
-
+            case "AdamW"
+                r=option.Regulator;
                 for j=1:NN.depth
-                    Direction.weight{j}=(m)*NN.Direction.dw{j}+(1-m)*dw{j};
-                    Direction.bias{j}=(m)*NN.Direction.db{j}+(1-m)*db{j};
-                    NN.weight{j}=NN.weight{j}-s0*Direction.weight{j};
-                    NN.bias{j}=NN.bias{j}-s0*Direction.bias{j};
+
+                    [DescentW,FW,SW]=ADAM(dw{j},NN.FirstMomentW{j},NN.SecondMomentW{j});
+                    [DescentB,FB,SB]=ADAM(db{j},NN.FirstMomentB{j},NN.SecondMomentB{j});
+
+                    NN.FirstMomentW{j}=FW; NN.SecondMomentW{j}=SW;
+                    NN.FirstMomentB{j}=FB; NN.SecondMomentB{j}=SB;
+
+                    NN.weight{j}=NN.weight{j}-s0*(DescentW+r*NN.weight{j});
+                    NN.bias{j}=NN.bias{j}-s0*(DescentB+r*NN.bias{j});
+
                 end
-                NN.Direction.dw=Direction.weight;
-                NN.Direction.db=Direction.bias;
 
         end
         UpdatedNN=NN;
 
-        function [Xnew,Mnew,Vnew,d]=ADAM(Xold,Mprev,Vprev,dw,iter)
+        function [d,Mnew,Vnew]=ADAM(dw,Mprev,Vprev)
+            iter=NN.StochasticCounter;
             beta1=0.9; beta2=0.999;
             Mnew=(beta1)*Mprev+(1-beta1)*dw;
             Vnew=(beta2)*Vprev+(1-beta2)*(dw.^2);
             Mt=Mnew/(1-beta1^iter); Vt=Vnew/(1-beta2^iter);
             epsilon=(1e-8);
             d=Mt./(sqrt(Vt)+epsilon);
-            Xnew=Xold-s0*d;
         end
         
+        function [d,Vnew]=RMSprop(dw,Vprev)
+            beta=0.9;
+            Vnew=(beta)*Vprev+(1-beta)*(dw.^2);
+            epsilon=(1e-8);
+            d=dw./(sqrt(Vnew)+epsilon);
+        end
+
     end
 
 end
-%% Auxilary Function
+%% Auxiliary Function
 function Sample=Shuffle(data,label,BatchSize)
 NumOfData=numel(data(1,:));
 NumOfBatch=floor(NumOfData/BatchSize)+1;
@@ -423,11 +594,27 @@ for i=1:NumOfBatch
         Rand=Index((i-1)*BatchSize+1:i*BatchSize);
         Sample.Data{i}=data(:,Rand);
         Sample.Label{i}=label(:,Rand);
+        Sample.Index{i}=Rand;
     elseif i==NumOfBatch && LastBatch~=0
         Rand=Index(NumOfData-LastBatch+1:end);
         Sample.Data{i}=data(:,Rand);
         Sample.Label{i}=label(:,Rand);
+        Sample.Index{i}=Rand;
     end
 
 end
+end
+
+function Accuracy=ComputeAccuracy(data,label,NN)
+    Probability=NN.Evaluate(data);
+    [~,PredictIndex]=max(Probability);
+    LabelIndex=NN.HotToIndex(label);
+    CorrectVector=LabelIndex==PredictIndex;
+    Accuracy=100*mean(CorrectVector);
+
+end
+
+function Class=ClassPredict(data,NN)
+    Probability=NN.Evaluate(data);
+    [~,Class]=max(Probability);
 end

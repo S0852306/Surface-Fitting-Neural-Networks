@@ -2,9 +2,11 @@ function [dw,db]=ColumnWiseAG(data,label,NN)
 % For Ordinary Neural Nets (Multi Layers Perceptron)
 % Numerical Method Parameters Setting
 % -----------------------------------------------------------
+if strcmp(NN.InputAutoScaling,'on')==1
+    data=NN.InputScaleVector.*data-NN.InputCenterVector;
+end
 i=complex(0,1);
 Step=1e-30; ReciprocalStep=1/Step;
-% -----------------------------------------------------------
 Memory=Nets(data,NN);
 NumOfData=size(label,2);
 dwRecord=NN.weight;

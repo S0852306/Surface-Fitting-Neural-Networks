@@ -2,9 +2,11 @@ function [dw,db]=ElementWiseRNAG(data,label,NN)
 
 % Numerical Mehtod Parameters Setting
 % -----------------------------------------------------------
+if strcmp(NN.InputAutoScaling,'on')==1
+    data=NN.InputScaleVector.*data-NN.InputCenterVector;
+end
 i=complex(0,1);
 Step=1e-30; ReciprocalStep=1/Step;
-% -----------------------------------------------------------
 dwRecord=NN.weight; dbRecord=NN.bias;
 Memory=Nets(data,NN);
 NN.ResMap{NN.depth}=0;
