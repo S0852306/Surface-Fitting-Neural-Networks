@@ -2,12 +2,13 @@
 **Neural networks for multivariable function approximation & classification.**
 # Introduction
 * Neural networks are universal function approximators, which means that given enough parameters, a neural net can approximate any multivariable continuous function to any desired level of accuracy.
+* The hybrid optimization algorithms used in the pack are specially designed for scientific computing tasks, outperforming several first-order methods such as ADAM.
 * More Info: https://tinyurl.com/wre9r5uk 
 (MATLAB File Exchange)
 
 # User Guide
-"GeneralGuide.mlx" provide a general workflow and detailed instructions on how to configure the solver.
-If you are not familiar with numerical optimization or deep learning, you can also use the following command to automatically configure the solver.
+"GeneralGuide.mlx" provide a general workflow and detailed instructions on configuring the solver.
+If you are unfamiliar with numerical optimization or deep learning, you can use the following command to configure the solver automatically.
 
 ```
 % Network Structure Set Up, for regression
@@ -39,8 +40,9 @@ NN=OptimizationSolver(data,label,NN,option);
  1. Stochastic Gradient Descents (SGD)
  2. Stochastic Gradient Descents with Momentum (SGDM)
  3. Adaptive Momentum Estimation (ADAM)
- 4. Root Mean Square Propagation (RMSprop)
- 5. Broyden-Fletcher-Goldfarb-Shanno Method (BFGS)
+ 4. Adaptive Momentum Estimation with Weight Decay (AdamW)
+ 5. Root Mean Square Propagation (RMSprop)
+ 6. Broyden-Fletcher-Goldfarb-Shanno Method (BFGS)
 
 # Reference
  1. Numerical Optimization, Nocedal & Wright.
