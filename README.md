@@ -2,7 +2,7 @@
 **Neural networks for multivariable function approximation & classification.**
 # Introduction
 * Neural networks are universal function approximators, which means that given enough parameters, a neural net can approximate any multivariable continuous function to any desired level of accuracy.
-* The hybrid optimization algorithms used in the pack are specially designed for scientific computing tasks, outperforming several first-order methods such as ADAM.
+* The hybrid optimization algorithms used in the pack are specially designed for scientific computing tasks, outperforming several state-of-the-art first-order methods such as ADAM.
 * More Info: https://tinyurl.com/wre9r5uk 
 (MATLAB File Exchange)
 
