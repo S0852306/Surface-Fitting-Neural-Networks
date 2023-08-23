@@ -3,8 +3,7 @@
 # Introduction
 * Neural networks are universal function approximators, which means that given enough parameters, a neural net can approximate any multivariable continuous function to any desired level of accuracy.
 * The hybrid optimization algorithms used in the pack are specially designed for scientific computing tasks, outperforming several state-of-the-art first-order methods such as ADAM.
-* More Info: https://tinyurl.com/wre9r5uk 
-(MATLAB File Exchange)
+* More Details in MATLAB File Exchange : [Surface Fitting using Neural Networks](https://tinyurl.com/wre9r5uk)  
 
 # User Guide
 "GeneralGuide.mlx" provide a general workflow and detailed instructions on configuring the solver.
