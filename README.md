@@ -6,7 +6,7 @@
 * More Details in MATLAB File Exchange : [Surface Fitting using Neural Networks](https://tinyurl.com/wre9r5uk)  
 
 # User Guide
-"GeneralGuide.mlx" provide a general workflow and detailed instructions on configuring the solver.
+"GeneralGuide.mlx" provides a general workflow and detailed instructions on configuring the solver.
 If you are unfamiliar with numerical optimization or deep learning, you can use the following command to configure the solver automatically.
 
 ```
