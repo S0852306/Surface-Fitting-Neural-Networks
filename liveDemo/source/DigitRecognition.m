@@ -24,19 +24,19 @@ label = zeros(2, 2*n);
 label(1, classId == 1) = 1;
 label(2, classId == 2) = 1;
 
-NN.Cost = 'Entropy';
-NN.ActivationFunction = 'Gaussian';
-NN = Initialization([2, 12, 2], NN);
+model.Cost = 'Entropy';
+model.ActivationFunction = 'Gaussian';
+model = Initialization([2, 12, 2], model);
 
 option.Solver = 'ADAM';
 option.MaxIteration = 80;
 option.BatchSize = 40;
-NN = OptimizationSolver(data, label, NN, option);
+model = OptimizationSolver(data, label, model, option);
 
-predictedClass = NN.Predict(data);
+predictedClass = model.Predict(data);
 hold on;
 scatter(data(1, predictedClass == 1), data(2, predictedClass == 1), 24, 'filled');
 scatter(data(1, predictedClass == 2), data(2, predictedClass == 2), 24, 'filled');
 axis equal; grid on;
 legend('Class 1', 'Class 2', 'Location', 'best');
-title(sprintf('Training accuracy: %.1f%%', NN.Accuracy));
+title(sprintf('Training accuracy: %.1f%%', model.Accuracy));

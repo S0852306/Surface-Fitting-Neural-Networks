@@ -7,41 +7,41 @@ n = 20;
 x = linspace(-2, 2, n);
 y = linspace(-2, 2, n);
 
-[X, Y] = meshgrid(x, y);               % (n x n)
-U = X.^2 + Y.^2;
+[xGrid, yGrid] = meshgrid(x, y);       % (n x n)
+radiusSquared = xGrid.^2 + yGrid.^2;
 
 % data: (2 x n^2)
-data = [X(:)'; Y(:)'];
+data = [xGrid(:)'; yGrid(:)'];
 
 % label: (2 x n^2)
-label1 = log(1 + (X - 4/3).^2 + 3*(X + Y - X.^3).^2);
-label2 = exp(-U/2) .* cos(2*U);
+label1 = log(1 + (xGrid - 4/3).^2 + 3*(xGrid + yGrid - xGrid.^3).^2);
+label2 = exp(-radiusSquared/2) .* cos(2*radiusSquared);
 label  = [label1(:)'; label2(:)'];
 
 %% ------------------------------------------------------------
 % 2) Network setup + training
 %% ------------------------------------------------------------
-NN.Cost = 'MSE';
+model.Cost = 'MSE';
 
-LayerStruct = [2, 10, 10, 10, 2];
-NN = Initialization(LayerStruct, NN);
+layerStruct = [2, 10, 10, 10, 2];
+model = Initialization(layerStruct, model);
 
 option.MaxIteration = 600;
-NN = OptimizationSolver(data, label, NN, option);
+model = OptimizationSolver(data, label, model, option);
 
 %% ------------------------------------------------------------
 % 3) Validation (report + prediction)
 %% ------------------------------------------------------------
-Report = FittingReport(data, label, NN);
-Prediction = Report.Prediction;         % (2 x n^2)
+report = FittingReport(data, label, model);
+prediction = report.prediction;         % (2 x n^2)
 
 %% ------------------------------------------------------------
 % 4) Visualization (both outputs)
 %% ------------------------------------------------------------
-Prediction = Report.Prediction;   % (2 x n^2)
+prediction = report.prediction;   % (2 x n^2)
 
-Zhat1 = reshape(Prediction(1,:), n, n);
-Zhat2 = reshape(Prediction(2,:), n, n);
+fit1 = reshape(prediction(1,:), n, n);
+fit2 = reshape(prediction(2,:), n, n);
 
 figure;
 
@@ -54,7 +54,7 @@ hold on; grid on;
 scatter3(data(1,:), data(2,:), label(1,:), ...
     18, 'k', 'filled');
 
-surf(X, Y, Zhat1, ...
+surf(xGrid, yGrid, fit1, ...
     'EdgeColor','none', ...
     'FaceAlpha',0.85);
 
@@ -73,7 +73,7 @@ hold on; grid on;
 scatter3(data(1,:), data(2,:), label(2,:), ...
     18, 'k', 'filled');
 
-surf(X, Y, Zhat2, ...
+surf(xGrid, yGrid, fit2, ...
     'EdgeColor','none', ...
     'FaceAlpha',0.85);
 

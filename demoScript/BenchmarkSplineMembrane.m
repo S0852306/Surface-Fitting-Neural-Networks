@@ -6,49 +6,49 @@ clear; clc; close all;
 %% ============================================================
 
 %% 1) Generate data / label from membrane
-L = membrane(1, 15);          % 31 x 31 surface
-[nr, nc] = size(L);
-[Xg, Yg] = meshgrid(linspace(0, 1, nc), linspace(0, 1, nr));
+membraneSurface = membrane(1, 15);          % 31 x 31 surface
+[numRows, numCols] = size(membraneSurface);
+[xGrid, yGrid] = meshgrid(linspace(0, 1, numCols), linspace(0, 1, numRows));
 
-data  = [Xg(:)'; Yg(:)'];   % (2 x 961)
-label = L(:)';               % (1 x 961)
+data  = [xGrid(:)'; yGrid(:)'];   % (2 x 961)
+label = membraneSurface(:)';      % (1 x 961)
 
 %% 2) Shared settings
-LayerStruct = [2, 20, 32, 20, 1];
+layerStruct = [2, 20, 32, 20, 1];
 
-optADAM = struct();
-optADAM.Solver       = 'ADAM';
-optADAM.s0           = 1e-3;
-optADAM.MaxIteration = 300;
-optADAM.BatchSize    = 150;
-optADAM.storeHistory = true;
+adamOption = struct();
+adamOption.Solver       = 'ADAM';
+adamOption.s0           = 1e-3;
+adamOption.MaxIteration = 300;
+adamOption.BatchSize    = 150;
+adamOption.storeHistory = true;
 
-optBFGS = struct();
-optBFGS.Solver       = 'BFGS';
-optBFGS.MaxIteration = 600;
-optBFGS.storeHistory = true;
+bfgsOption = struct();
+bfgsOption.Solver       = 'BFGS';
+bfgsOption.MaxIteration = 600;
+bfgsOption.storeHistory = true;
 
 %% ============================================================
 %  A) Wavelet activation
 %% ============================================================
 fprintf('\n========== Training: Wavelet ==========\n');
 
-NN_wave = struct();
-NN_wave.Cost             = 'MSE';
-NN_wave.NetworkType      = 'ResNet';
-NN_wave.InputAutoScaling = 'on';
-NN_wave.LabelAutoScaling = 'on';
+waveModel = struct();
+waveModel.Cost             = 'MSE';
+waveModel.NetworkType      = 'ResNet';
+waveModel.InputAutoScaling = 'on';
+waveModel.LabelAutoScaling = 'on';
 
 % waveAct = @(z) (1 - z.^2) .* exp(-0.5 * z.^2);
 % waveDer = @(z,a) exp(-0.5 * z.^2) .* (z.^3 - 3*z);
-% NN_wave.active         = waveAct;
-% NN_wave.activeDerivate = waveDer;
+% waveModel.active         = waveAct;
+% waveModel.activeDerivate = waveDer;
 
-NN_wave = Initialization(LayerStruct, NN_wave);
+waveModel = Initialization(layerStruct, waveModel);
 
 tWave = tic;
-NN_wave = OptimizationSolver(data, label, NN_wave, optADAM);
-NN_wave = OptimizationSolver(data, label, NN_wave, optBFGS);
+waveModel = OptimizationSolver(data, label, waveModel, adamOption);
+waveModel = OptimizationSolver(data, label, waveModel, bfgsOption);
 tWave = toc(tWave);
 
 %% ============================================================
@@ -56,32 +56,32 @@ tWave = toc(tWave);
 %% ============================================================
 fprintf('\n========== Training: Learnable Spline ==========\n');
 
-NN_spline = struct();
-NN_spline.Cost             = 'MSE';
-NN_spline.NetworkType      = 'ResNet';
-NN_spline.InputAutoScaling = 'on';
-NN_spline.LabelAutoScaling = 'on';
+splineModel = struct();
+splineModel.Cost             = 'MSE';
+splineModel.NetworkType      = 'ResNet';
+splineModel.InputAutoScaling = 'on';
+splineModel.LabelAutoScaling = 'on';
 
-NN_spline.ActivationFunction = 'Spline';
-NN_spline.spline.numGrid   = 32;
-NN_spline.spline.gridRange = [-4 4];
-NN_spline.spline.initShape = 'Gaussian';
+splineModel.ActivationFunction = 'Spline';
+splineModel.spline.numGrid   = 32;
+splineModel.spline.gridRange = [-4 4];
+splineModel.spline.initShape = 'Gaussian';
 
-NN_spline = Initialization(LayerStruct, NN_spline);
+splineModel = Initialization(layerStruct, splineModel);
 
 tSpline = tic;
-NN_spline = OptimizationSolver(data, label, NN_spline, optADAM);
-NN_spline = OptimizationSolver(data, label, NN_spline, optBFGS);
+splineModel = OptimizationSolver(data, label, splineModel, adamOption);
+splineModel = OptimizationSolver(data, label, splineModel, bfgsOption);
 tSpline = toc(tSpline);
 
 %% ============================================================
 %  3) FittingReport
 %% ============================================================
-fprintf('\n========== Wavelet Report ==========\n');
-Report_wave = FittingReport(data, label, NN_wave);
+fprintf('\n========== Wavelet report ==========\n');
+waveReport = FittingReport(data, label, waveModel);
 
-fprintf('\n========== Spline Report ==========\n');
-Report_spline = FittingReport(data, label, NN_spline);
+fprintf('\n========== Spline report ==========\n');
+splineReport = FittingReport(data, label, splineModel);
 
 %% ============================================================
 %  4) Summary table
@@ -89,10 +89,10 @@ Report_spline = FittingReport(data, label, NN_spline);
 fprintf('\n============= Membrane Fitting Summary =============\n');
 fprintf('  %-20s  %12s  %12s\n', '', 'Wavelet', 'Spline');
 fprintf('  %-20s  %12.6e  %12.6e\n', 'Final Cost', ...
-    NN_wave.OptimizationHistory(end), NN_spline.OptimizationHistory(end));
+    waveModel.OptimizationHistory(end), splineModel.OptimizationHistory(end));
 fprintf('  %-20s  %10.2f s   %10.2f s\n', 'Training Time', tWave, tSpline);
 fprintf('  %-20s  %12d  %12d\n', 'Parameters', ...
-    NN_wave.numOfParameters, NN_spline.numOfParameters);
+    waveModel.numOfParameters, splineModel.numOfParameters);
 fprintf('====================================================\n');
 
 %% ============================================================
@@ -100,11 +100,11 @@ fprintf('====================================================\n');
 %% ============================================================
 figure('Name','Membrane: Training Curves');
 hold on; grid on;
-plot(log10(NN_wave.OptimizationHistory),   '-o', ...
-    'LineWidth', 1.3, 'MarkerIndices', 1:70:numel(NN_wave.OptimizationHistory), ...
+plot(log10(waveModel.OptimizationHistory),   '-o', ...
+    'LineWidth', 1.3, 'MarkerIndices', 1:70:numel(waveModel.OptimizationHistory), ...
     'MarkerSize', 5);
-plot(log10(NN_spline.OptimizationHistory), '-s', ...
-    'LineWidth', 1.3, 'MarkerIndices', 1:70:numel(NN_spline.OptimizationHistory), ...
+plot(log10(splineModel.OptimizationHistory), '-s', ...
+    'LineWidth', 1.3, 'MarkerIndices', 1:70:numel(splineModel.OptimizationHistory), ...
     'MarkerSize', 5);
 xlabel('Iteration'); ylabel('log_{10}(Cost)');
 title('Membrane Fitting: Optimization History');
@@ -114,63 +114,63 @@ legend({'Wavelet', 'Learnable Spline'}, 'Location', 'best');
 %  6) Surface comparison on FINE grid (test generalization)
 %% ============================================================
 nFine = 100;
-Lf = membrane(1, round((nFine-1)/2));  % produces nFine x nFine
-[nrf, ncf] = size(Lf);
-[Xf, Yf] = meshgrid(linspace(0, 1, ncf), linspace(0, 1, nrf));
-dataFine = [Xf(:)'; Yf(:)'];
+fineSurface = membrane(1, round((nFine-1)/2));  % produces nFine x nFine
+[numFineRows, numFineCols] = size(fineSurface);
+[xFineGrid, yFineGrid] = meshgrid(linspace(0, 1, numFineCols), linspace(0, 1, numFineRows));
+dataFine = [xFineGrid(:)'; yFineGrid(:)'];
 
-Pred_wave_f   = reshape(NN_wave.Evaluate(dataFine),   nrf, ncf);
-Pred_spline_f = reshape(NN_spline.Evaluate(dataFine), nrf, ncf);
+wavePredictionFine   = reshape(waveModel.Evaluate(dataFine),   numFineRows, numFineCols);
+splinePredictionFine = reshape(splineModel.Evaluate(dataFine), numFineRows, numFineCols);
 
 figure('Name','Membrane: Surface Comparison (fine grid)');
 
 subplot(1,3,1);
-surf(Xf, Yf, Lf, 'EdgeColor','none', 'FaceAlpha', 0.9);
+surf(xFineGrid, yFineGrid, fineSurface, 'EdgeColor','none', 'FaceAlpha', 0.9);
 title('Ground Truth'); xlabel('x'); ylabel('y'); zlabel('z');
 colormap turbo; view(3); axis tight;
 
 subplot(1,3,2);
-surf(Xf, Yf, Pred_wave_f, 'EdgeColor','none', 'FaceAlpha', 0.9);
+surf(xFineGrid, yFineGrid, wavePredictionFine, 'EdgeColor','none', 'FaceAlpha', 0.9);
 title('Wavelet'); xlabel('x'); ylabel('y'); zlabel('z');
 colormap turbo; view(3); axis tight;
 
 subplot(1,3,3);
-surf(Xf, Yf, Pred_spline_f, 'EdgeColor','none', 'FaceAlpha', 0.9);
+surf(xFineGrid, yFineGrid, splinePredictionFine, 'EdgeColor','none', 'FaceAlpha', 0.9);
 title('Spline'); xlabel('x'); ylabel('y'); zlabel('z');
 colormap turbo; view(3); axis tight;
 
 %% ============================================================
-%  7) Error heatmaps (fine grid)
+%  7) fitError heatmaps (fine grid)
 %% ============================================================
-Err_wave_f   = abs(Lf - Pred_wave_f);
-Err_spline_f = abs(Lf - Pred_spline_f);
-cmax = max(max(Err_wave_f(:)), max(Err_spline_f(:)));
+waveErrorFine   = abs(fineSurface - wavePredictionFine);
+splineErrorFine = abs(fineSurface - splinePredictionFine);
+cmax = max(max(waveErrorFine(:)), max(splineErrorFine(:)));
 
-fprintf('\n========== Fine-Grid Test Error ==========\n');
-fprintf('  Wavelet  MAE = %.6e\n', mean(Err_wave_f(:)));
-fprintf('  Spline   MAE = %.6e\n', mean(Err_spline_f(:)));
+fprintf('\n========== Fine-Grid Test fitError ==========\n');
+fprintf('  Wavelet  MAE = %.6e\n', mean(waveErrorFine(:)));
+fprintf('  Spline   MAE = %.6e\n', mean(splineErrorFine(:)));
 
-figure('Name','Membrane: Pointwise Error (fine grid)');
+figure('Name','Membrane: Pointwise fitError (fine grid)');
 
 subplot(1,2,1);
-imagesc(Xf(1,:), Yf(:,1), Err_wave_f);
+imagesc(xFineGrid(1,:), yFineGrid(:,1), waveErrorFine);
 set(gca,'YDir','normal'); caxis([0 cmax]); colorbar;
-title('Wavelet |error|'); xlabel('x'); ylabel('y'); axis equal tight;
+title('Wavelet |fitError|'); xlabel('x'); ylabel('y'); axis equal tight;
 
 subplot(1,2,2);
-imagesc(Xf(1,:), Yf(:,1), Err_spline_f);
+imagesc(xFineGrid(1,:), yFineGrid(:,1), splineErrorFine);
 set(gca,'YDir','normal'); caxis([0 cmax]); colorbar;
-title('Spline |error|'); xlabel('x'); ylabel('y'); axis equal tight;
+title('Spline |fitError|'); xlabel('x'); ylabel('y'); axis equal tight;
 
 %% ============================================================
 %  8) Learned spline shapes
 %% ============================================================
 figure('Name','Learned Spline Shapes');
-numHidden = NN_spline.depth - 1;
-knots = NN_spline.splineGrid.knots;
+numHidden = splineModel.depth - 1;
+knots = splineModel.splineGrid.knots;
 for i = 1:numHidden
     subplot(1, numHidden, i); hold on; grid on;
-    plot(knots, NN_spline.splineCoeff{i}, '-o', 'LineWidth', 1.5, 'MarkerSize', 3);
+    plot(knots, splineModel.splineCoeff{i}, '-o', 'LineWidth', 1.5, 'MarkerSize', 3);
     xlabel('z'); ylabel('\sigma(z)');
     title(sprintf('Layer %d', i));
 end

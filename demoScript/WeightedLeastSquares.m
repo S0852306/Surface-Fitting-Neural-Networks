@@ -10,12 +10,12 @@ y = exp(-0.5 * x) .* cos(8 * x);            % 1 x n
 %% ------------------------------------------------------------
 % 2) Network setup
 %% ------------------------------------------------------------
-LayerStruct = [1, 5, 5, 5, 1];
+layerStruct = [1, 5, 5, 5, 1];
 
-NN = struct();
-NN.Cost = 'SSE';
-NN.ActivationFunction = 'Wavelet';
-NN = Initialization(LayerStruct, NN);
+model = struct();
+model.Cost = 'SSE';
+model.ActivationFunction = 'Wavelet';
+model = Initialization(layerStruct, model);
 
 %% ------------------------------------------------------------
 % 3) Training options (weighted SSE)
@@ -24,24 +24,24 @@ option = struct();
 option.MaxIteration = 300;
 
 % Weighting vector (same length as y)
-w = ones(1, n);
-w(300:end) = 10;                            % emphasize later samples
-option.weighted = w;                        % comment this line to see difference
+sampleWeight = ones(1, n);
+sampleWeight(300:end) = 10;                 % emphasize later samples
+option.weighted = sampleWeight;             % comment this line to see difference
 
-NN = OptimizationSolver(x, y, NN, option);
+model = OptimizationSolver(x, y, model, option);
 
 %% ------------------------------------------------------------
-% 4) Report + prediction
+% 4) report + prediction
 %% ------------------------------------------------------------
-Report = FittingReport(x, y, NN);
-p = NN.Evaluate(x);
+report = FittingReport(x, y, model);
+prediction = model.Evaluate(x);
 
 %% ------------------------------------------------------------
 % 5) Visualization
 %% ------------------------------------------------------------
 figure; hold on; grid on;
 plot(x, y, 'LineWidth', 1.5);
-plot(x, p, 'LineWidth', 1.5);
+plot(x, prediction, 'LineWidth', 1.5);
 xlabel('x'); ylabel('y');
 title('1D Fit (Weighted SSE)');
-legend({'Target','Prediction'}, 'Location','best');
+legend({'Target','prediction'}, 'Location','best');
