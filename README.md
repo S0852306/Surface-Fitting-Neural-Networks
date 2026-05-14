@@ -8,11 +8,15 @@ This toolbox is built for MATLAB users who need accurate nonlinear regression wi
 
 Sharp 1D curve fitting with the default learnable B-spline basis:
 
-![Sharp square-wave-like MATLAB neural network curve fitting with B-spline basis](docs/assets/sharp-square-wave-curve-fitting.png)
+<p align="center">
+  <img src="docs/assets/sharp-square-wave-curve-fitting.png" alt="Sharp square-wave-like MATLAB neural network curve fitting with B-spline basis" width="720">
+</p>
 
 Multi-output 2D surface fitting:
 
-![MATLAB neural network multi-output surface fitting for nonlinear regression](docs/assets/multi-output-surface-fitting.png)
+<p align="center">
+  <img src="docs/assets/multi-output-surface-fitting.png" alt="MATLAB neural network multi-output surface fitting for nonlinear regression" width="820">
+</p>
 
 ## Core Function
 
