@@ -4,8 +4,6 @@ High-precision MATLAB framework for **N-dimensional curve fitting**, **surface f
 
 This toolbox is built for MATLAB users who need accurate nonlinear regression without a heavy deep learning stack. It provides a lightweight neural network fitting workflow with learnable B-spline bases, fixed activation bases, ANN/ResNet models, and ADAM + BFGS/LBFGS refinement.
 
-**Search keywords:** MATLAB curve fitting, MATLAB surface fitting, N-dimensional function approximation, nonlinear regression, neural network fitting, multivariable regression, B-spline neural network, high-accuracy surface approximation, BFGS neural network optimizer.
-
 ## Fitting Examples
 
 Sharp 1D curve fitting with the default learnable B-spline basis:
