@@ -29,10 +29,12 @@ optADAM.Solver       = 'ADAM';
 optADAM.s0           = 1e-3;
 optADAM.MaxIteration = 250;
 optADAM.BatchSize    = 100;
+optADAM.storeHistory = true;
 
 optBFGS = struct();
 optBFGS.Solver       = 'BFGS';
 optBFGS.MaxIteration = 500;
+optBFGS.storeHistory = true;
 
 %% ============================================================
 %  A) Original: Wavelet activation (custom handle)

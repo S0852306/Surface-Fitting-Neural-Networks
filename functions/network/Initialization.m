@@ -1,20 +1,9 @@
 function NN = Initialization(LayerStruct, NN)
 %INITIALIZATION  Build NN struct, set defaults, activation, and initialize params.
-% Adds built-in activation: 'Wavelet' (Mexican hat) + 'Sine' (for SIREN).
+% Adds built-in activation: 'Wavelet' (Mexican hat) + 'Sine'.
 %
 % Built-in activations (string):
 %   'Gaussian' | 'Sigmoid' | 'tanh' | 'ReLU' | 'Wavelet' | 'Sine'
-%
-% SirenNet:
-%   NN.NetworkType = 'SirenNet'
-%   Optional:
-%     NN.siren.omega0      (default 30)
-%     NN.siren.omegaHidden (default 1)
-%
-% NOTE:
-%   For compatibility with existing backprop signature NN.activeDerivate(z,a),
-%   we implement SIREN frequency via weight initialization scaling (equivalent
-%   to using sin(omega*z) in forward).
 
     if nargin == 1
         NN = struct();
@@ -39,6 +28,11 @@ function NN = Initialization(LayerStruct, NN)
     if ~isfield(NN,'LabelAutoScaling');    NN.LabelAutoScaling = 'off'; end
     if ~isfield(NN,'LineSearcher');        NN.LineSearcher = 'BackTrack'; end
 
+    if ~strcmp(NN.NetworkType,'ANN') && ~strcmp(NN.NetworkType,'ResNet')
+        error('Initialization:UnsupportedNetworkType', ...
+            'NetworkType must be ANN or ResNet.');
+    end
+
     NN.MeanFactor  = 1;
     NN.PreTrained  = 0;
 
@@ -56,7 +50,6 @@ function NN = Initialization(LayerStruct, NN)
     NN.numOfWeight    = LayerMatrix(1,:) * LayerMatrix(2,:)';
     NN.numOfBias      = sum(LayerMatrix(2,:));
     ResidualOn = strcmp(NN.NetworkType,'ResNet');
-    SirenOn    = strcmp(NN.NetworkType,'SirenNet');
 
     % ------------------------------------------------------------
     % Learnable spline activation defaults
@@ -122,24 +115,6 @@ function NN = Initialization(LayerStruct, NN)
     end
 
     NN.numOfParameters = NN.numOfWeight + NN.numOfBias + NN.numOfSpline;
-
-    % ------------------------------------------------------------
-    % Siren params defaults (only used when SirenOn)
-    % ------------------------------------------------------------
-    if SirenOn
-        if ~isfield(NN,'siren'); NN.siren = struct(); end
-        if ~isfield(NN.siren,'omega0') || isempty(NN.siren.omega0)
-            NN.siren.omega0 = 30;     % common SIREN default
-        end
-        if ~isfield(NN.siren,'omegaHidden') || isempty(NN.siren.omegaHidden)
-            NN.siren.omegaHidden = 1; % common default (paper often uses 1)
-        end
-
-        % Force activation to Sine unless user explicitly provided custom handle
-        if ~isa(NN.ActivationFunction,'function_handle')
-            NN.ActivationFunction = 'Gaussian';
-        end
-    end
 
     % ------------------------------------------------------------
     % Output activation for classification
@@ -208,15 +183,7 @@ function NN = Initialization(LayerStruct, NN)
     % Initialize weights / moments
     % ------------------------------------------------------------
     for i = 1:NumOfLayer
-
-        if SirenOn
-            [W,b] = LayerInitializationSiren( ...
-                LayerMatrix(:,i), i, NumOfLayer, ...
-                NN.siren.omega0, NN.siren.omegaHidden ...
-            );
-        else
-            [W,b] = LayerInitialization(LayerMatrix(:,i));
-        end
+        [W,b] = LayerInitialization(LayerMatrix(:,i));
 
         NN.weight{i} = W;
         NN.bias{i}   = b;
@@ -284,7 +251,7 @@ function actID = mapActivationNameToID(name)
             actID = 4;
         case 'Wavelet'
             actID = 5;
-        case 'Sine'     % NEW: for SIREN hidden layers
+        case 'Sine'
             actID = 6;
         case 'Spline'   % learnable linear spline
             actID = 7;
@@ -387,45 +354,6 @@ function [W,b] = LayerInitialization(v)
     temp = rand(OutDim, InDim);
     W    = Radius * (temp - 0.5*rand(OutDim, InDim));
     b    = zeros(OutDim, 1);
-end
-
-function [W,b] = LayerInitializationSiren(v, layerIdx, depth, omega0, omegaHidden)
-% LayerInitializationSiren
-% Implements SIREN-style init while keeping activation = sin(z) and derivative = cos(z)
-% by absorbing omega into weight scaling for hidden layers.
-%
-% For layer < depth (hidden):
-%   first layer: Wtilde ~ U(-1/In, +1/In), then W = omega0 * Wtilde
-%   other hidden: Wtilde ~ U(-sqrt(6/In)/omegaHidden, +...), then W = omegaHidden * Wtilde
-%                => effective W ~ U(-sqrt(6/In), +sqrt(6/In))
-%
-% For output layer (linear):
-%   W ~ U(-sqrt(6/In)/omegaHidden, +sqrt(6/In)/omegaHidden)   (common SIREN choice)
-
-    rng(1);
-
-    InDim  = v(1);
-    OutDim = v(2);
-
-    isOutput = (layerIdx == depth);
-
-    if ~isOutput
-        if layerIdx == 1
-            bound = 1 / InDim;
-            Wtilde = (2*rand(OutDim, InDim) - 1) * bound;
-            W = omega0 * Wtilde;                 % absorb omega0
-        else
-            bound = sqrt(6 / InDim) / omegaHidden;
-            Wtilde = (2*rand(OutDim, InDim) - 1) * bound;
-            W = omegaHidden * Wtilde;            % absorb omegaHidden
-        end
-    else
-        % output linear layer (no sine), keep smaller bound
-        bound = sqrt(6 / InDim) / omegaHidden;
-        W = (2*rand(OutDim, InDim) - 1) * bound;
-    end
-
-    b = zeros(OutDim, 1);
 end
 
 % ======================================================================

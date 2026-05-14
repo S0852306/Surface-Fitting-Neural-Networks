@@ -1,27 +1,35 @@
-function ParaStruct=VecToMatrix(v,NN)
+function cells = VecToMatrix(vector, NN)
+%VECTOMATRIX  Unpack a vector into NN-shaped weight or bias cells.
 
-
-        if numel(v)==NN.numOfWeight
-            NumOfVariable=0;
-
-            for i=1:NN.depth
-                NumOfLocalWeight=NN.LayerStruct(1,i)*NN.LayerStruct(2,i);
-                for j=1:NumOfLocalWeight
-                    NumOfVariable=NumOfVariable+1;
-                    NN.weight{i}(j)=v(NumOfVariable);
-                end
-            end
-            ParaStruct=NN.weight;
-        else
-            NumOfVariable=0;
-            for i=1:NN.depth
-                NumOfLocalBias=NN.LayerStruct(2,i);
-                for j=1:NumOfLocalBias
-                    NumOfVariable=NumOfVariable+1;
-                    NN.bias{i}(j)=v(NumOfVariable);
-                end
-            end
-            ParaStruct=NN.bias;
-        end
-
+    vector = vector(:);
+    if numel(vector) == NN.numOfWeight
+        cells = vectorToWeights(vector, NN);
+    elseif numel(vector) == NN.numOfBias
+        cells = vectorToBiases(vector, NN);
+    else
+        error('VecToMatrix:BadVectorLength', ...
+            'Vector length must match NN.numOfWeight or NN.numOfBias.');
     end
+end
+
+function weights = vectorToWeights(vector, NN)
+    weights = NN.weight;
+    offset = 0;
+    for idx = 1:NN.depth
+        outDim = NN.LayerStruct(2, idx);
+        inDim = NN.LayerStruct(1, idx);
+        count = outDim * inDim;
+        weights{idx} = reshape(vector(offset + 1:offset + count), outDim, inDim);
+        offset = offset + count;
+    end
+end
+
+function biases = vectorToBiases(vector, NN)
+    biases = NN.bias;
+    offset = 0;
+    for idx = 1:NN.depth
+        count = NN.LayerStruct(2, idx);
+        biases{idx} = reshape(vector(offset + 1:offset + count), count, 1);
+        offset = offset + count;
+    end
+end

@@ -1,18 +1,17 @@
-function Vector=MatrixToVec(S,NN)
-VariableList=zeros(NN.depth,1);
-for i=1:NN.depth
-    VariableList(i)=numel(S{i});
-end
-TempVector=zeros(sum(VariableList),1);
-NumOfVariable=0;
-for i=1:NN.depth
+function vector = MatrixToVec(cells, NN)
+%MATRIXTOVEC  Pack a parameter cell array into one column vector.
 
-    for j=1:VariableList(i)
-        NumOfVariable=NumOfVariable+1;
-        TempVector(NumOfVariable)=S{i}(j);
+    totalLength = 0;
+    for idx = 1:NN.depth
+        totalLength = totalLength + numel(cells{idx});
     end
 
+    vector = zeros(totalLength, 1);
+    offset = 0;
+    for idx = 1:NN.depth
+        values = cells{idx}(:);
+        count = numel(values);
+        vector(offset + 1:offset + count) = values;
+        offset = offset + count;
+    end
 end
-Vector=TempVector;
-end
-

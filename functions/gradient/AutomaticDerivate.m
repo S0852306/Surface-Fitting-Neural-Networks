@@ -1,6 +1,6 @@
 function Derivate=AutomaticDerivate(x,NN)
-% This is not the function used to train neural networks. 
-% The gradients of network parameters are computed using "ElementWiseAG", "ElementWiseRANG", and so on.
+% This is not used to train neural networks.
+% Parameter gradients are computed by the analytical training gradient files.
 i=complex(0,1); h=1e-14; rh=1/h;
 NumOfVariable=size(x,1);
 NumOfData=size(x,2);

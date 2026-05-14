@@ -48,6 +48,7 @@ option.Solver = 'ADAM';
 option.s0 = 1e-3;
 option.MaxIteration = 250;
 option.BatchSize = 100;
+option.storeHistory = true;
 
 NN = OptimizationSolver(data, label, NN, option);
 

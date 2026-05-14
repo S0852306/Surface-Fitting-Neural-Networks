@@ -1,11 +1,14 @@
-clear; clc; close all; % path automatically configured by startup or previous run
-x = linspace(-2, 2, 20); y = x;
-[X, Y] = meshgrid(x, y); U = X.^2 + Y.^2; Z = exp(-0.5*U).*cos(2*U);
-data = [X(:), Y(:)].'; label = Z(:).';
+clear; clc; close all;
+addpath(genpath('functions'));
 
-NN = NeuralFit(data, label, [2, 1]); 
-Prediction = NN.Evaluate(data);
-PerformanceMetric = NN.Report;
+x = linspace(-2, 2, 80);
+y = abs(x) + 0.1*sin(8*x);
+
+model = NeuralFit(x, y, [1, 1]);
+prediction = model.Evaluate(x);
 
 figure();
-surf(X, Y, Z); hold on; scatter3(data(1, :), data(2, :), Prediction)
+plot(x, y, 'k.', x, prediction, 'r-', 'LineWidth', 1.5);
+grid on;
+legend('Data', 'NeuralFit default: B-spline basis', 'Location', 'best');
+title('Sharp / nonsmooth fitting: default B-spline basis');
