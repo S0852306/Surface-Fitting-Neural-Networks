@@ -63,13 +63,31 @@ title('2D Surface Fitting');
 
 ## Installation
 
-Navigate to the package folder in MATLAB, then run:
+Download the package and open the top-level package folder in MATLAB. The top-level MATLAB entry file is intentionally just `mainDemo.m`.
+
+To install the package path, run once:
 
 ```matlab
-setupNeuralNetPath
+run('installScript/installNeuralNetsPack.m')
 ```
 
-This adds the package folders to the MATLAB path.
+After installation, `NeuralFit`, `Initialization`, and `OptimizationSolver` work from any MATLAB current folder because the package path is saved.
+
+For future updates, replace the old downloaded package folder with the new one, then run the installer again. The installer retires old or stale NeuralNetsPack / Surface-Fitting-Neural-Networks paths before adding the new package path.
+
+The install scripts are grouped in one folder:
+
+- `installScript/installNeuralNetsPack.m`: one-time installer
+- `installScript/setupNeuralNetPath.m`: path setup utility
+
+If you only want to enable the package for the current MATLAB session, run:
+
+```matlab
+addpath('installScript')
+setupNeuralNetPath(struct('savePath', false))
+```
+
+If MATLAB cannot save the path because of permission settings, run MATLAB as usual and run `installScript/installNeuralNetsPack.m` again, or use MATLAB's Set Path tool to save the path manually.
 
 ## Manual Network and Solver Setup
 

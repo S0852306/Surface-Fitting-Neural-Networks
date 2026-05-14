@@ -11,6 +11,7 @@ else
     packRoot = fileparts(thisDir);
 end
 addpath(packRoot);
+addpath(fullfile(packRoot, 'installScript'));
 setupNeuralNetPath(struct('savePath', false, 'verbose', false));
 
 x = linspace(-2, 2, 80);
