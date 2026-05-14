@@ -34,6 +34,9 @@ option.BatchSize = 40;
 NN = OptimizationSolver(data, label, NN, option);
 
 predictedClass = NN.Predict(data);
-gscatter(data(1,:), data(2,:), predictedClass);
+hold on;
+scatter(data(1, predictedClass == 1), data(2, predictedClass == 1), 24, 'filled');
+scatter(data(1, predictedClass == 2), data(2, predictedClass == 2), 24, 'filled');
 axis equal; grid on;
+legend('Class 1', 'Class 2', 'Location', 'best');
 title(sprintf('Training accuracy: %.1f%%', NN.Accuracy));

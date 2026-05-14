@@ -1,8 +1,24 @@
-# Surface Fitting Neural Networks
+# MATLAB Neural Network Toolbox for High-Accuracy N-D Curve and Surface Fitting
 
-Neural Network Toolbox for N-dimensional curve fitting, surface fitting, multivariable nonlinear regression, and function approximation in MATLAB.
+High-precision MATLAB framework for **N-dimensional curve fitting**, **surface fitting**, **multivariable nonlinear regression**, and **function approximation**.
 
-The package is designed to stay lightweight: it uses plain MATLAB code, struct-based networks, and no external dependencies.
+This toolbox is built for MATLAB users who need accurate nonlinear regression without a heavy deep learning stack. It provides a lightweight neural network fitting workflow with learnable B-spline bases, fixed activation bases, ANN/ResNet models, and ADAM + BFGS/LBFGS refinement.
+
+**Search keywords:** MATLAB curve fitting, MATLAB surface fitting, N-dimensional function approximation, nonlinear regression, neural network fitting, multivariable regression, B-spline neural network, high-accuracy surface approximation, BFGS neural network optimizer.
+
+## Fitting Examples
+
+High-accuracy 1D curve fitting with the default learnable B-spline basis:
+
+![High-accuracy MATLAB neural network curve fitting with B-spline basis](docs/assets/high-accuracy-curve-fitting.png)
+
+2D nonlinear surface fitting:
+
+![MATLAB NeuralFit 2D nonlinear surface fitting result](docs/assets/surface-fitting-2d.png)
+
+Multi-output 2D surface fitting:
+
+![MATLAB neural network multi-output surface fitting for nonlinear regression](docs/assets/multi-output-surface-fitting.png)
 
 ## Core Function
 
@@ -28,8 +44,9 @@ Use the default B-spline basis for sharp or nonsmooth data. Use a fixed basis su
 
 ## Key Features
 
-- N-dimensional input and M-dimensional output fitting
-- Learnable B-spline basis for sharp or nonsmooth functions
+- High-accuracy N-dimensional curve and surface fitting
+- Multivariable nonlinear regression with `N x D` input and `M x D` output
+- Learnable quadratic B-spline basis for sharp or nonsmooth functions
 - Fixed bases such as `Gaussian`, `tanh`, `ReLU`, `Wavelet`, and `Sigmoid`
 - Fully customizable network architecture
 - ANN and ResNet network types
