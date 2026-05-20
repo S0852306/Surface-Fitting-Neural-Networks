@@ -18,7 +18,7 @@ function NN = Initialization(LayerStruct, NN)
         NN.Cost              = 'MSE';
         NN.NetworkType        = 'ANN';
         NN.InputAutoScaling   = 'on';
-        NN.LabelAutoScaling   = 'off';
+        NN.LabelAutoScaling   = 'on';
     end
 
     if ~isfield(NN,'ActivationFunction');  NN.ActivationFunction = 'Gaussian'; end
@@ -212,7 +212,11 @@ function NN = Initialization(LayerStruct, NN)
     % ------------------------------------------------------------
     % Layer Normalization (optional, for ANN and ResNet)
     % ------------------------------------------------------------
-    if ~isfield(NN,'LayerNorm'); NN.LayerNorm = 'on'; end
+    if ~isfield(NN,'LayerNorm'); NN.LayerNorm = 'off'; end
+    % ResNet 預設 on，ANN 由外部決定（NeuralFit 已處理）
+    if strcmpi(NN.NetworkType, 'ResNet') && ~isfield(NN, 'LayerNorm')
+        NN.LayerNorm = 'on';
+    end
     NN.layerNormOn = strcmp(NN.LayerNorm, 'on');
 
     if NN.layerNormOn

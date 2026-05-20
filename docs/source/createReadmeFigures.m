@@ -25,7 +25,7 @@ x = linspace(-3, 3, 220);
 y = tanh(18*sin(5*x)) + 0.08*cos(17*x);
 
 bsplineModel = NeuralFit(x, y, [1, 1], ...
-    'stage1Iterations', 80, 'stage2Iterations', 500);
+    'stage1Iterations', 80, 'stage2Iterations', 500, 'basis', 'Bspline');
 yHat = bsplineModel.Evaluate(x);
 
 fig = figure('Visible', 'off', 'Color', 'w', 'Position', [100 100 820 360]);

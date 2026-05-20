@@ -3,8 +3,8 @@ clear; clc; close all;
 x = linspace(-3, 3, 160);
 y = sign(sin(3*x)) + 0.15*cos(11*x);
 
-bsplineModel = NeuralFit(x, y, [1, 1]);
-gaussianModel = NeuralFit(x, y, [1, 1], 'basis', 'Gaussian');
+bsplineModel = NeuralFit(x, y, [1, 1], 'basis', 'BSpline');
+gaussianModel = NeuralFit(x, y, [1, 1]);
 
 yBspline = bsplineModel.Evaluate(x);
 yGaussian = gaussianModel.Evaluate(x);

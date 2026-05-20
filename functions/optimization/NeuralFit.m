@@ -22,9 +22,28 @@ function fittedModel = NeuralFit(data, label, ioDimension, varargin)
 
     NN.InputAutoScaling = 'on';
     NN.LabelAutoScaling = 'on';
+
     NN.NetworkType = 'ANN';
     NN.Cost = 'MSE';
+
     NN = applyBasisConfig(NN, config);
+
+    % LayerNorm default behavior：
+    % ANN: depth >= 7 on，ortherwise off（unless user specified）
+    % ResNet: default on
+    if ~isfield(NN, 'LayerNorm')
+        if isfield(NN, 'NetworkType') && strcmpi(NN.NetworkType, 'ResNet')
+            NN.LayerNorm = 'on';
+        else
+            % activate ln base on depth of ANN
+            if numel(layerStruct) - 1 >= 7
+                NN.LayerNorm = 'on';
+            else
+                NN.LayerNorm = 'off';
+            end
+        end
+    end
+
     NN = Initialization(layerStruct, NN);
 
     option = getDefaultFitOptions(numData, config);
@@ -47,7 +66,7 @@ function fittedModel = NeuralFit(data, label, ioDimension, varargin)
 end
 
 function config = parseFitConfig(varargin)
-    config.activation = 'BSpline';
+    config.activation = 'Gaussian';
     config.stage1Iterations = 50;
     config.stage2Iterations = 550;
     config.storeHistory = false;
@@ -79,7 +98,6 @@ end
 
 function NN = applyBasisConfig(NN, config)
     actName = config.activation;
-
     if strcmpi(actName, 'BSpline')
         NN.ActivationFunction = 'BSpline';
         NN.bspline.order = 3;

@@ -33,12 +33,12 @@ model = OptimizationSolver(data, label, model, option);
 % 3) Validation (report + prediction)
 %% ------------------------------------------------------------
 report = FittingReport(data, label, model);
-prediction = report.prediction;         % (2 x n^2)
+prediction = report.Prediction;         % (2 x n^2)
 
 %% ------------------------------------------------------------
 % 4) Visualization (both outputs)
 %% ------------------------------------------------------------
-prediction = report.prediction;   % (2 x n^2)
+prediction = report.Prediction;   % (2 x n^2)
 
 fit1 = reshape(prediction(1,:), n, n);
 fit2 = reshape(prediction(2,:), n, n);

@@ -1,15 +1,14 @@
-# Neural Net Curve Fitting and Surface Fitting Toolbox
+# Neural Network Toolbox for Curve Fitting and Nonlinear Regression
 
-[![MATLAB](https://img.shields.io/badge/MATLAB-R2020b%2B-blue.svg)](https://www.mathworks.com/products/matlab.html)
-[![No Dependency](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](#installation)
-[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+Lightweight MATLAB toolbox for N-dimensional curve fitting, surface fitting, nonlinear regression, and function approximation.Supports learnable B-spline activations, ANN/ResNet architectures, and quasi-Newton refinement for high-accuracy fitting of sharp or nonsmooth targets.
 
-A lightweight MATLAB toolbox for **N-dimensional curve fitting**, **surface fitting**, **nonlinear regression**, and **function approximation**. It combines learnable B-spline activations with quasi-Newton refinement to achieve high accuracy on sharp or nonsmooth targets without requiring the Deep Learning Toolbox or any external dependencies.
+Pure MATLAB implementation with no Deep Learning Toolbox, MEX, or external dependencies.
 
 ```matlab
 NN = NeuralFit(x, y, [N, M]);
-yHat = NN.Evaluate(x);
+yPred = NN.Evaluate(x);
 ```
+`N` and `M` denote input and output dimensions.
 
 <p align="center">
   <img src="docs/assets/sharp-square-wave-curve-fitting.png" alt="MATLAB neural network sharp curve fitting with learnable B-spline activation" width="720">
@@ -23,16 +22,16 @@ yHat = NN.Evaluate(x);
 
 ## Usage
 
-- `x`: input data, `N × D` (dimensions × samples)
-- `y`: target data, `M × D`
+- `x`: input data, `D × N` (dimensions × number of samples)
+- `y`: target data, `D × M` (dimensions × number of samples)
 - `[N, M]`: input and output dimensions
 
-The default activation is a **learnable quadratic B-spline**. To switch:
+The default activation/basis is a **Gaussian**. To switch basis:
 
 ```matlab
-NN = NeuralFit(x, y, [N, M]);                       % learnable B-spline (default)
-NN = NeuralFit(x, y, [N, M], 'basis', 'Gaussian');   % fixed Gaussian basis
-NN = NeuralFit(x, y, [N, M], 'basis', 'Wavelet');    % fixed Wavelet basis
+NN = NeuralFit(x, y, [N, M]);                       % gaussian (default)
+NN = NeuralFit(x, y, [N, M], 'basis', 'Wavelet');   % wavelet basis
+NN = NeuralFit(x, y, [N, M], 'basis', 'BSpline');   % learnable B-spline basis
 ```
 
 ---
@@ -153,11 +152,10 @@ Ready-to-run templates in `demoScript/`:
 ## Training Tips
 
 - Data shape: `dimensions × samples`
-- Use the default B-spline activation for sharp or nonsmooth targets
-- Use `'basis','Gaussian'` for smooth functions
+- Use the B-spline activation for sharp or nonsmooth targets
 - Start with a small network; increase width/depth only if needed
 - `NeuralFit` applies autoscaling by default for stable convergence
-- Apply BFGS/L-BFGS after stochastic training for machine-precision results
+- Apply BFGS/L-BFGS after stochastic training for high-precision results
 
 ---
 

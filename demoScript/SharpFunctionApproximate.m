@@ -1,28 +1,42 @@
-%% 2D Piecewise-Constant Surface Fitting with Pointwise Error
-% Target: a 2D function with multiple plateau regions and sharp jumps
+%% 2D Sharp-but-Smooth Function Fitting with Pointwise Error
+% Target: a 2D function with sharp but smooth transitions
 clear; clc; close all;
 
-%% Generate piecewise-constant target on [-2,2]x[-2,2]
+%% Generate sharp-but-smooth target on [-2,2]x[-2,2]
 n = 50;
 xv = linspace(-2, 2, n);
 yv = linspace(-2, 2, n);
 [X, Y] = meshgrid(xv, yv);
 
-% Multiple step regions (values in [-1, 1])
-F = 0.6*sign(sin(2*X)) ...
-  + 0.4*sign(cos(3*Y)) ...
-  - 0.3*sign(X.*Y - 0.5) ...
-  + 0.2*sign(X.^2 + Y.^2 - 2);
+% Smooth but with sharp transitions
+% --- Parameters ---
+F = zeros(size(X));
+num_pulses = 3;
+centers = linspace(-1.5, 1.5, num_pulses);
+width = 0.35; % width of each pulse
+sharpness = 40; % higher = sharper edge
+for i = 1:num_pulses
+    for j = 1:num_pulses
+        cx = centers(i);
+        cy = centers(j);
+        % 2D smooth square pulse (almost discrete)
+        pulse = 0.8 * (1 ./ (1 + exp(-sharpness*(X-cx+width/2))) - 1 ./ (1 + exp(-sharpness*(X-cx-width/2)))) ...
+                   .* (1 ./ (1 + exp(-sharpness*(Y-cy+width/2))) - 1 ./ (1 + exp(-sharpness*(Y-cy-width/2))));
+        F = F + pulse;
+    end
+end
+
+% Add small amplitude smooth variation
+F = F + 0.15 * sin(2*X) .* sin(2*Y);
 
 data  = [X(:), Y(:)].';   % 2 x D
-label = F(:).';            % 1 x D
+label = F(:).';           % 1 x D
 
 %% Fit with deep ResNet + BSpline activation (ReLU init shape) + LayerNorm
-layers = [2, repmat(8,1,20), 1];  % 20 hidden layers, width 8
+layers = [2, repmat(8,1,30), 1];  % 20 hidden layers, width 8
 
 NN.Cost = 'MSE';
 NN.ActivationFunction = 'Gaussian';
-% NN.BSplineInitShape = 'ReLU';
 NN.NetworkType = 'ResNet';
 NN.LayerNorm = 'on';
 NN = Initialization(layers, NN);
@@ -37,7 +51,7 @@ option.MaxIteration = 450;
 NN = OptimizationSolver(data, label, NN, option);
 
 prediction = NN.Evaluate(data);
-
+performance = FittingReport(data, label, NN);
 %% Compute pointwise absolute error
 errMap = reshape(abs(prediction - label), n, n);
 predSurf = reshape(prediction, n, n);
@@ -45,11 +59,11 @@ predSurf = reshape(prediction, n, n);
 %% Plot
 figure('Color','w', 'Position', [80 80 1300 500]);
 
-% --- Left: true piecewise surface ---
+% --- Left: true surface ---
 subplot(1,3,1);
 surf(X, Y, F, 'EdgeColor', 'none');
 xlabel('x'); ylabel('y'); zlabel('f');
-title('Target (piecewise-constant)');
+title('Target (sharp-but-smooth)');
 view([-35 30]); colormap(gca, parula); colorbar;
 
 % --- Middle: NN fit ---
@@ -67,5 +81,5 @@ title('Pointwise |error|');
 colorbar; colormap(gca, hot);
 axis equal tight;
 
-fprintf('Piecewise 2D fit — MAE: %.4e, max|error|: %.4e\n', ...
+fprintf('Sharp-but-smooth 2D fit — MAE: %.4e, max|error|: %.4e\n', ...
     mean(errMap(:)), max(errMap(:)));
