@@ -1,14 +1,15 @@
 # Neural Network Toolbox for Curve Fitting and Nonlinear Regression
 
-Lightweight MATLAB toolbox for N-dimensional curve fitting, surface fitting, nonlinear regression, and function approximation.Supports learnable B-spline activations, ANN/ResNet architectures, and quasi-Newton refinement for high-accuracy fitting of sharp or nonsmooth targets.
+Lightweight MATLAB toolbox for **N-dimensional curve fitting**, **surface fitting**, **nonlinear regression**, and **function approximation**.
+
+The simplified workflow uses a Gaussian basis by default, with optional **learnable B-spline activations** for sharp, oscillatory, or nonsmooth targets. The toolbox also supports ANN/ResNet architectures and quasi-Newton refinement for high-precision fitting.
 
 Pure MATLAB implementation with no Deep Learning Toolbox, MEX, or external dependencies.
-
 ```matlab
 NN = NeuralFit(x, y, [N, M]);
 yPred = NN.Evaluate(x);
 ```
-`N` and `M` denote input and output dimensions.
+`x` is `N × D`, y is `M × D`, and `[N, M]` defines the input/output dimensions.
 
 <p align="center">
   <img src="docs/assets/sharp-square-wave-curve-fitting.png" alt="MATLAB neural network sharp curve fitting with learnable B-spline activation" width="720">
@@ -42,7 +43,7 @@ NN = NeuralFit(x, y, [N, M], 'basis', 'BSpline');   % learnable B-spline basis
 - **7 built-in activations** — Gaussian, Sigmoid, tanh, ReLU, Wavelet, Sine, BSpline; plus custom function-handle support
 - **ANN and ResNet** architectures with arbitrary layer widths
 - **7 optimizers** — SGD, SGDM, RMSprop, ADAM, AdamW, BFGS, L-BFGS
-- **Two-stage training** — stochastic first stage + quasi-Newton refinement for machine-precision results
+- **Two-stage training** — stochastic first stage + quasi-Newton refinement for high-precision fitting
 - **Autoscaling** — automatic input normalization for stable convergence
 - **Multi-input, multi-output** — arbitrary `N → M` mappings
 - **Zero dependencies** — pure MATLAB, no toolboxes, no MEX
