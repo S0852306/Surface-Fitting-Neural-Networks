@@ -1,16 +1,14 @@
 function fittedModel = NeuralFit(data, label, ioDimension, varargin)
 % NeuralFit
 %   fittedModel = NeuralFit(data, label, ioDimension)
-%   fittedModel = NeuralFit(..., 'basis', 'Gaussian')
+%   fittedModel = NeuralFit(..., 'activation', 'Gaussian')
 %
-% Default basis is learnable quadratic B-spline:
-%   basis = 'bspline', NN.bspline.order = 3, NN.bspline.numGrid = 8.
+% Default activation is learnable quadratic B-spline:
+%   NN.bspline.order = 3, NN.bspline.numGrid = 8.
 %
-% For smooth fitting, use a fixed basis such as:
-%   NeuralFit(data, label, dims, 'basis', 'fixed')
-%   NeuralFit(data, label, dims, 'basis', 'Gaussian')
-%
-% For sharp or nonsmooth fitting, leave the default B-spline basis on.
+% For smooth fitting, specify a fixed activation:
+%   NeuralFit(data, label, dims, 'activation', 'Gaussian')
+%   NeuralFit(data, label, dims, 'activation', 'Wavelet')
 
     config = parseFitConfig(varargin{:});
 
@@ -49,7 +47,7 @@ function fittedModel = NeuralFit(data, label, ioDimension, varargin)
 end
 
 function config = parseFitConfig(varargin)
-    config.basis = 'bspline';
+    config.activation = 'BSpline';
     config.stage1Iterations = 50;
     config.stage2Iterations = 550;
     config.storeHistory = false;
@@ -62,8 +60,8 @@ function config = parseFitConfig(varargin)
         name = lower(string(varargin{idx}));
         value = varargin{idx + 1};
         switch name
-            case "basis"
-                config.basis = char(value);
+            case {"basis", "activation"}
+                config.activation = char(value);
             case "maxiteration"
                 config.stage1Iterations = max(1, round(double(value) / 12));
                 config.stage2Iterations = max(1, double(value) - config.stage1Iterations);
@@ -80,32 +78,28 @@ function config = parseFitConfig(varargin)
 end
 
 function NN = applyBasisConfig(NN, config)
-    basisName = char(config.basis);
-    if strcmpi(basisName, 'fixed')
-        basisName = 'Gaussian';
-    end
+    actName = config.activation;
 
-    if strcmpi(basisName, 'bspline')
+    if strcmpi(actName, 'BSpline')
         NN.ActivationFunction = 'BSpline';
         NN.bspline.order = 3;
         NN.bspline.numGrid = 8;
         NN.bspline.initShape = 'Gaussian';
     else
-        NN.ActivationFunction = normalizeFixedBasisName(basisName);
+        NN.ActivationFunction = normalizeActivationName(actName);
     end
-    NN.Basis = basisName;
 end
 
-function basisName = normalizeFixedBasisName(basisName)
-    knownBasis = {'Gaussian', 'Sigmoid', 'tanh', 'ReLU', 'Wavelet', 'Sine'};
-    for idx = 1:numel(knownBasis)
-        if strcmpi(basisName, knownBasis{idx})
-            basisName = knownBasis{idx};
+function actName = normalizeActivationName(actName)
+    knownAct = {'Gaussian', 'Sigmoid', 'tanh', 'ReLU', 'Wavelet', 'Sine'};
+    for idx = 1:numel(knownAct)
+        if strcmpi(actName, knownAct{idx})
+            actName = knownAct{idx};
             return
         end
     end
-    error('NeuralFit:UnknownBasis', ...
-        'Unknown basis "%s". Use bspline, fixed, Gaussian, Sigmoid, tanh, ReLU, Wavelet, or Sine.', basisName);
+    error('NeuralFit:UnknownActivation', ...
+        'Unknown activation "%s". Use BSpline, Gaussian, Sigmoid, tanh, ReLU, Wavelet, or Sine.', actName);
 end
 
 function x = ensureRowIsFeature(x, expectedDim)

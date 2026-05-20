@@ -1,124 +1,108 @@
-# MATLAB Neural Network Toolbox for High-Accuracy N-D Curve and Surface Fitting
+# Neural Net Curve Fitting and Surface Fitting Toolbox
 
-High-precision MATLAB framework for **N-dimensional curve fitting**, **surface fitting**, **multivariable nonlinear regression**, and **function approximation**.
+[![MATLAB](https://img.shields.io/badge/MATLAB-R2020b%2B-blue.svg)](https://www.mathworks.com/products/matlab.html)
+[![No Dependency](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](#installation)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-This toolbox is built for MATLAB users who need accurate nonlinear regression without a heavy deep learning stack. It provides a lightweight neural network fitting workflow with learnable B-spline bases, fixed activation bases, ANN/ResNet models, and ADAM + BFGS/LBFGS refinement.
-
-## Fitting Examples
-
-Sharp 1D curve fitting with the default learnable B-spline basis:
-
-<p align="center">
-  <img src="docs/assets/sharp-square-wave-curve-fitting.png" alt="Sharp square-wave-like MATLAB neural network curve fitting with B-spline basis" width="720">
-</p>
-
-Multi-output 2D surface fitting:
-
-<p align="center">
-  <img src="docs/assets/multi-output-surface-fitting.png" alt="MATLAB neural network multi-output surface fitting for nonlinear regression" width="820">
-</p>
-
-## Core Function
+A lightweight MATLAB toolbox for **N-dimensional curve fitting**, **surface fitting**, **nonlinear regression**, and **function approximation**. It combines learnable B-spline activations with quasi-Newton refinement to achieve high accuracy on sharp or nonsmooth targets without requiring the Deep Learning Toolbox or any external dependencies.
 
 ```matlab
 NN = NeuralFit(x, y, [N, M]);
+yHat = NN.Evaluate(x);
 ```
 
-Where:
+<p align="center">
+  <img src="docs/assets/sharp-square-wave-curve-fitting.png" alt="MATLAB neural network sharp curve fitting with learnable B-spline activation" width="720">
+</p>
 
-- `x` is `N x D`: input dimension by number of samples
-- `y` is `M x D`: output dimension by number of samples
-- `[N, M]` defines the input and output dimensions
+<p align="center">
+  <img src="docs/assets/multi-output-surface-fitting.png" alt="MATLAB multi-output 2D surface fitting using neural network nonlinear regression" width="820">
+</p>
 
-By default, `NeuralFit` uses a learnable quadratic B-spline basis:
+---
+
+## Usage
+
+- `x`: input data, `N × D` (dimensions × samples)
+- `y`: target data, `M × D`
+- `[N, M]`: input and output dimensions
+
+The default activation is a **learnable quadratic B-spline**. To switch:
 
 ```matlab
-NN = NeuralFit(x, y, [N, M]);                 % default B-spline basis
-NN = NeuralFit(x, y, [N, M], 'basis', 'fixed');    % fixed Gaussian basis
-NN = NeuralFit(x, y, [N, M], 'basis', 'Gaussian'); % fixed Gaussian basis
+NN = NeuralFit(x, y, [N, M]);                       % learnable B-spline (default)
+NN = NeuralFit(x, y, [N, M], 'basis', 'Gaussian');   % fixed Gaussian basis
+NN = NeuralFit(x, y, [N, M], 'basis', 'Wavelet');    % fixed Wavelet basis
 ```
 
-Use the default B-spline basis for sharp or nonsmooth data. Use a fixed basis such as Gaussian for smoother targets.
+---
 
-## Key Features
+## Features
 
-- High-accuracy N-dimensional curve and surface fitting
-- Multivariable nonlinear regression with `N x D` input and `M x D` output
-- Learnable quadratic B-spline basis for sharp or nonsmooth functions
-- Fixed bases such as `Gaussian`, `tanh`, `ReLU`, `Wavelet`, and `Sigmoid`
-- Fully customizable network architecture
-- ANN and ResNet network types
-- First-order and quasi-Newton optimizers
-- Lightweight MATLAB implementation with no external dependencies
-- Compact demos and live demos for quick onboarding
+- **Learnable B-spline activation** — piecewise polynomial basis that adapts shape during training; ideal for sharp, oscillatory, or nonsmooth data
+- **7 built-in activations** — Gaussian, Sigmoid, tanh, ReLU, Wavelet, Sine, BSpline; plus custom function-handle support
+- **ANN and ResNet** architectures with arbitrary layer widths
+- **7 optimizers** — SGD, SGDM, RMSprop, ADAM, AdamW, BFGS, L-BFGS
+- **Two-stage training** — stochastic first stage + quasi-Newton refinement for machine-precision results
+- **Autoscaling** — automatic input normalization for stable convergence
+- **Multi-input, multi-output** — arbitrary `N → M` mappings
+- **Zero dependencies** — pure MATLAB, no toolboxes, no MEX
 
-## Quick Example: 2D Nonlinear Surface Fitting
+---
+
+## Example: 2D Surface Fitting
 
 ```matlab
-clear; clc; close all;
-
 x = linspace(-2, 2, 20);
 y = x;
 [X, Y] = meshgrid(x, y);
 U = X.^2 + Y.^2;
 Z = exp(-0.5*U).*cos(2*U);
 
-data = [X(:), Y(:)].';
+data  = [X(:), Y(:)].';
 label = Z(:).';
 
 NN = NeuralFit(data, label, [2, 1]);
 prediction = NN.Evaluate(data);
-performanceMetric = NN.Report;
 
-figure();
+figure;
 surf(X, Y, Z); hold on;
-scatter3(data(1, :), data(2, :), prediction);
+scatter3(data(1,:), data(2,:), prediction);
 title('2D Surface Fitting');
 ```
 
+---
+
 ## Installation
 
-Download the package and open the top-level package folder in MATLAB. The top-level MATLAB entry file is intentionally just `mainDemo.m`.
-
-To install the package path, run once:
+Download and extract the package, then run:
 
 ```matlab
 run('installScript/installNeuralNetsPack.m')
 ```
 
-After installation, `NeuralFit`, `Initialization`, and `OptimizationSolver` work from any MATLAB current folder because the package path is saved.
+This permanently adds the toolbox to the MATLAB path. After installation, `NeuralFit`, `Initialization`, and `OptimizationSolver` are accessible from any folder.
 
-For future updates, replace the old downloaded package folder with the new one, then run the installer again. The installer retires old or stale NeuralNetsPack / Surface-Fitting-Neural-Networks paths before adding the new package path.
-
-The install scripts are grouped in one folder:
-
-- `installScript/installNeuralNetsPack.m`: one-time installer
-- `installScript/setupNeuralNetPath.m`: path setup utility
-
-If you only want to enable the package for the current MATLAB session, run:
+For a session-only setup without saving the path:
 
 ```matlab
 addpath('installScript')
 setupNeuralNetPath(struct('savePath', false))
 ```
 
-If MATLAB cannot save the path because of permission settings, run MATLAB as usual and run `installScript/installNeuralNetsPack.m` again, or use MATLAB's Set Path tool to save the path manually.
+---
 
-## Manual Network and Solver Setup
+## Full Customizable Workflow
 
-For more control, configure the architecture and solver directly:
+For direct control over architecture, activation, and solver:
 
 ```matlab
-clear; clc; close all;
-
-data = linspace(0, 2*pi, 1000);
+data  = linspace(0, 2*pi, 1000);
 label = data.*sin(data) + cos(3*data);
-
-layerStruct = [1, 7, 7, 7, 1];
 
 NN.Cost = 'MSE';
 NN.ActivationFunction = 'Gaussian';
-NN = Initialization(layerStruct, NN);
+NN = Initialization([1, 7, 7, 7, 1], NN);
 
 option.Solver = 'ADAM';
 option.MaxIteration = 200;
@@ -130,58 +114,59 @@ option.MaxIteration = 400;
 NN = OptimizationSolver(data, label, NN, option);
 
 prediction = NN.Evaluate(data);
-
-figure();
-plot(data, label, 'k.', data, prediction, 'r-', 'LineWidth', 1.5);
-grid on;
-legend('Data', 'Prediction');
 ```
 
-## Workflow Templates
+See [docs/Customization.md](docs/Customization.md) for a full reference on activation functions, layer structure, network types, optimizer options, preprocessing, and cost functions.
 
-Ready-to-use script templates are included in `demoScript/`:
+---
 
-- `SimplifiedWorkflow.m`: minimal nonlinear regression workflow
-- `CustomizableWorkflow.m`: full control over architecture, solver, and training options
-- `BenchmarkSpline1D.m`: short comparison of default B-spline and fixed Gaussian basis
-- `SpiralClassification.m`: compact classification example
-- `WeightedLeastSquares.m`: weighted fitting example
+## Demo Scripts
 
-Short Live Scripts are included in `liveDemo/`:
+Ready-to-run templates in `demoScript/`:
 
-- `GeneralGuide.mlx`
-- `CurveFittingFromNoisyData.mlx`
-- `DigitRecognition.mlx`
-- `MathModel.mlx`
-- `TipsForTrainingNeuralNet.mlx`
+| Script | Description |
+|--------|-------------|
+| `SimplifiedWorkflow.m` | Minimal nonlinear regression workflow |
+| `CustomizableWorkflow.m` | Full architecture and solver control |
+| `BenchmarkActivation1D.m` | B-spline vs. fixed Gaussian activation comparison |
+| `SpiralClassification.m` | 2D classification example |
+| `WeightedLeastSquares.m` | Weighted fitting example |
 
-The maintainable source files for these Live Scripts are in `liveDemo/source/`.
+---
 
-## Available Optimization Solvers
+## Available Optimizers
 
-```matlab
-'SGD'
-'SGDM'
-'RMSprop'
-'ADAM'
-'AdamW'
-'BFGS'
-'LBFGS'
-```
+| Solver | Type | Use Case |
+|--------|------|----------|
+| `SGD` | First-order | Baseline stochastic training |
+| `SGDM` | First-order | Momentum-accelerated SGD |
+| `RMSprop` | First-order | Adaptive learning rate |
+| `ADAM` | First-order | Robust default first stage |
+| `AdamW` | First-order | Weight-decoupled regularization |
+| `BFGS` | Quasi-Newton | High-precision full-batch refinement |
+| `LBFGS` | Quasi-Newton | Memory-efficient quasi-Newton |
 
-Typical workflow:
+**Recommended workflow:** ADAM (first stage) → BFGS or L-BFGS (refinement).
 
-1. Use `ADAM` for a robust first stage.
-2. Use `BFGS` or `LBFGS` for high-precision refinement.
+---
 
 ## Training Tips
 
-- Keep data shaped as `dimension x samples`.
-- Use default `NeuralFit` for sharp or nonsmooth data.
-- Use `basis='fixed'` or `basis='Gaussian'` for smoother functions.
-- Normalize inputs for better convergence. `NeuralFit` enables autoscaling by default.
-- Start with a small network, then increase width/depth only if needed.
-- Use BFGS or LBFGS refinement after stochastic training for high precision.
+- Data shape: `dimensions × samples`
+- Use the default B-spline activation for sharp or nonsmooth targets
+- Use `'basis','Gaussian'` for smooth functions
+- Start with a small network; increase width/depth only if needed
+- `NeuralFit` applies autoscaling by default for stable convergence
+- Apply BFGS/L-BFGS after stochastic training for machine-precision results
+
+---
+
+## Documentation
+
+- [Customization Guide](docs/Customization.md) — activation, layers, network type, optimizer, cost function
+- [Mathematical Formulation](docs/MathModel.md) — forward pass, gradient computation, B-spline mathematics
+
+---
 
 ## References
 

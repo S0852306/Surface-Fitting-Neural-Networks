@@ -4,7 +4,6 @@ function info = setupNeuralNetPath(opts)
 % Add NeuralNetsPack folders to MATLAB path:
 %   - <packRoot>/functions (with subfolders)
 %   - <packRoot>/demoScript
-%   - <packRoot>/liveDemo
 %   - <packRoot>/installScript
 %
 % Usage from package root:
@@ -42,7 +41,6 @@ function info = setupNeuralNetPath(opts)
 
     functionRoot = fullfile(packRoot, 'functions');
     demoScriptRoot = fullfile(packRoot, 'demoScript');
-    liveDemoRoot = fullfile(packRoot, 'liveDemo');
 
     if ~isfolder(functionRoot)
         error('setupNeuralNetPath:MissingFunctionsFolder', ...
@@ -66,11 +64,6 @@ function info = setupNeuralNetPath(opts)
         added{end+1} = demoScriptRoot;
     end
 
-    if isfolder(liveDemoRoot)
-        addpath(liveDemoRoot);
-        added{end+1} = liveDemoRoot;
-    end
-
     didSave = false;
     if opts.savePath
         try
@@ -87,7 +80,6 @@ function info = setupNeuralNetPath(opts)
     info.installRoot = installRoot;
     info.functionRoot = functionRoot;
     info.demoScriptRoot = demoScriptRoot;
-    info.liveDemoRoot = liveDemoRoot;
     info.addedEntries = added;
     info.removedEntries = removed;
     info.savedPath = didSave;

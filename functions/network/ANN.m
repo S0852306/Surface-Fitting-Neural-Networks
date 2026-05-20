@@ -11,16 +11,20 @@ function FunctionOutput = ANN(data, NN)
     % 1) Hidden layers
     % ------------------------------------------------------------
     splineOn = isfield(NN,'splineOn') && NN.splineOn;
+    lnOn = isfield(NN,'layerNormOn') && NN.layerNormOn;
     for i = 1:(NN.depth - 1)
         z = NN.weight{i} * v + NN.bias{i};  % pre-activation
         if splineOn
-            if NN.bsplineOn
-                v = BSplineActivation(z, NN.splineCoeff{i}, NN.bsplineGrid);
-            else
-                v = SplineActivation(z, NN.splineCoeff{i}, NN.splineGrid);
-            end
+            v = BSplineActivation(z, NN.splineCoeff{i}, NN.bsplineGrid);
         else
             v = NN.active(z);                % activation
+        end
+
+        % Layer Normalization (per-sample, across neurons)
+        if lnOn
+            mu = mean(v, 1);
+            sig2 = var(v, 1, 1) + 1e-5;
+            v = NN.lnGamma{i} .* ((v - mu) ./ sqrt(sig2)) + NN.lnBeta{i};
         end
     end
 

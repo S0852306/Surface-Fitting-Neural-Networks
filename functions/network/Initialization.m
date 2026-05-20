@@ -54,37 +54,19 @@ function NN = Initialization(LayerStruct, NN)
     % ------------------------------------------------------------
     % Learnable spline activation defaults
     % ------------------------------------------------------------
-    SplineOn  = false;
     BSplineOn = false;
     if ischar(NN.ActivationFunction) || isstring(NN.ActivationFunction)
-        SplineOn  = strcmp(NN.ActivationFunction, 'Spline');
         BSplineOn = strcmp(NN.ActivationFunction, 'BSpline');
     end
-    NN.splineOn  = SplineOn || BSplineOn;   % dc flows for both types
+    NN.splineOn  = BSplineOn;
     NN.bsplineOn = BSplineOn;
 
-    if SplineOn
-        if ~isfield(NN,'spline'); NN.spline = struct(); end
-        if ~isfield(NN.spline,'numGrid') || isempty(NN.spline.numGrid)
-            NN.spline.numGrid = 16;
-        end
-        if ~isfield(NN.spline,'gridRange') || isempty(NN.spline.gridRange)
-            NN.spline.gridRange = [-4 4];
-        end
-        if ~isfield(NN.spline,'initShape') || isempty(NN.spline.initShape)
-            NN.spline.initShape = 'Gaussian';
-        end
-        numKnots = NN.spline.numGrid + 1;
-        gMin = NN.spline.gridRange(1);
-        gMax = NN.spline.gridRange(2);
-        NN.splineGrid.knots        = linspace(gMin, gMax, numKnots);
-        NN.splineGrid.h            = (gMax - gMin) / NN.spline.numGrid;
-        NN.splineGrid.numKnots     = numKnots;
-        NN.splineGrid.numIntervals = NN.spline.numGrid;
-        numCoeffs = numKnots;
-        NN.numOfSpline = (NumOfLayer - 1) * numCoeffs;
-    elseif BSplineOn
+    if BSplineOn
         if ~isfield(NN,'bspline'); NN.bspline = struct(); end
+        % Allow shorthand: NN.BSplineInitShape → NN.bspline.initShape
+        if isfield(NN,'BSplineInitShape') && ~isfield(NN.bspline,'initShape')
+            NN.bspline.initShape = NN.BSplineInitShape;
+        end
         if ~isfield(NN.bspline,'order') || isempty(NN.bspline.order)
             NN.bspline.order = 4;          % cubic B-spline
         end
@@ -108,13 +90,14 @@ function NN = Initialization(LayerStruct, NN)
         NN.bsplineGrid.order     = kOrd;
         NN.bsplineGrid.numBasis  = numBasis;
         NN.bsplineGrid.gridRange = [gMin gMax];
+        NN.bsplineGrid.numGrid   = G;
+        NN.bsplineGrid.invH      = G / (gMax - gMin);
+        NN.bsplineGrid = precomputeBSplinePoly(NN.bsplineGrid);
         numCoeffs = numBasis;
         NN.numOfSpline = (NumOfLayer - 1) * numCoeffs;
     else
         NN.numOfSpline = 0;
     end
-
-    NN.numOfParameters = NN.numOfWeight + NN.numOfBias + NN.numOfSpline;
 
     % ------------------------------------------------------------
     % Output activation for classification
@@ -198,18 +181,9 @@ function NN = Initialization(LayerStruct, NN)
     end
 
     % ------------------------------------------------------------
-    % Spline / B-spline coefficient initialization + moments
+    % B-spline coefficient initialization + moments
     % ------------------------------------------------------------
-    if SplineOn
-        numKnots = NN.splineGrid.numKnots;
-        knotVals = NN.splineGrid.knots(:);   % column vector
-        initC = initSplineCoeffs(knotVals, NN.spline.initShape);
-        for i = 1:NumOfLayer - 1
-            NN.splineCoeff{i}     = initC;
-            NN.FirstMomentC{i}    = zeros(numKnots, 1);
-            NN.SecondMomentC{i}   = zeros(numKnots, 1);
-        end
-    elseif BSplineOn
+    if BSplineOn
         nB   = NN.bsplineGrid.numBasis;
         kOrd = NN.bsplineGrid.order;
         aug  = NN.bsplineGrid.knots;
@@ -234,6 +208,31 @@ function NN = Initialization(LayerStruct, NN)
             NN.ResMap{i} = IdentityMap(size(NN.bias{i},1), size(NN.bias{i-1},1));
         end
     end
+
+    % ------------------------------------------------------------
+    % Layer Normalization (optional, for ANN and ResNet)
+    % ------------------------------------------------------------
+    if ~isfield(NN,'LayerNorm'); NN.LayerNorm = 'on'; end
+    NN.layerNormOn = strcmp(NN.LayerNorm, 'on');
+
+    if NN.layerNormOn
+        numLN = 0;
+        for i = 1:NumOfLayer - 1
+            H = LayerMatrix(2, i);
+            NN.lnGamma{i} = ones(H, 1);
+            NN.lnBeta{i}  = zeros(H, 1);
+            NN.FirstMomentLnG{i}  = zeros(H, 1);
+            NN.SecondMomentLnG{i} = zeros(H, 1);
+            NN.FirstMomentLnB{i}  = zeros(H, 1);
+            NN.SecondMomentLnB{i} = zeros(H, 1);
+            numLN = numLN + 2*H;
+        end
+        NN.numOfLN = numLN;
+    else
+        NN.numOfLN = 0;
+    end
+
+    NN.numOfParameters = NN.numOfWeight + NN.numOfBias + NN.numOfSpline + NN.numOfLN;
 end
 
 % ======================================================================
@@ -253,10 +252,8 @@ function actID = mapActivationNameToID(name)
             actID = 5;
         case 'Sine'
             actID = 6;
-        case 'Spline'   % learnable linear spline
-            actID = 7;
         case 'BSpline'  % learnable B-spline
-            actID = 8;
+            actID = 7;
         otherwise
             error('Initialization:UnknownActivation', ...
                 'Unknown ActivationFunction = "%s".', name);
@@ -286,10 +283,7 @@ function a = activationForwardFast(actID, z, customAct)
         case 6 % Sine
             a = sin(z);
 
-        case 7 % Spline (placeholder – real forward uses SplineActivation)
-            a = z;  % identity fallback; ANN/ResNet override this path
-
-        case 8 % BSpline (placeholder – real forward uses BSplineActivation)
+        case 7 % BSpline (placeholder – real forward uses BSplineActivation)
             a = z;
 
         case 0 % Custom
@@ -320,10 +314,7 @@ function d = activationDerivFast(actID, z, a, customDer)
         case 6 % Sine: d/dz sin(z) = cos(z)
             d = cos(z);
 
-        case 7 % Spline (placeholder – real deriv computed in gradient file)
-            d = ones(size(z));
-
-        case 8 % BSpline (placeholder – real deriv computed in gradient file)
+        case 7 % BSpline (placeholder – real deriv computed in gradient file)
             d = ones(size(z));
 
         case 0 % Custom
@@ -425,4 +416,117 @@ function c = initSplineCoeffs(knotVals, shape)
         otherwise
             c = exp(-knotVals.^2);   % fallback to Gaussian
     end
+end
+
+% ======================================================================
+% Precompute B-spline polynomial coefficients (called once at init)
+% ======================================================================
+function grid = precomputeBSplinePoly(grid)
+%PRECOMPUTEBSPLINEPOLY  Build per-span Horner coefficients for B and dB.
+%   For each interior span s = 0..numGrid-1, there are k non-zero basis
+%   functions.  Each is a polynomial of degree k-1 in the local coordinate
+%   u = (z - breakpoint_s) / h,  u in [0,1).
+%
+%   We sample each span at k Chebyshev-like points, evaluate the basis via
+%   Cox-de Boor (one time only), then solve for the polynomial coefficients
+%   via a Vandermonde system.
+%
+%   Stored:
+%     grid.P   [numGrid x k x k]      — Horner coefficients for B
+%     grid.dP  [numGrid x k x (k-1)]  — Horner coefficients for dB/dz
+%                                        (derivative in z, not u)
+
+    k    = grid.order;
+    numG = grid.numGrid;
+    gMin = grid.gridRange(1);
+    invH = grid.invH;
+    h    = 1 / invH;
+
+    % Chebyshev nodes on [0,1] for better conditioning than equispaced
+    idx  = (1:k)';
+    uSample = 0.5 * (1 - cos(pi * (2*idx - 1) / (2*k)));
+
+    % Vandermonde matrix: columns are u^{k-1}, u^{k-2}, ..., u, 1
+    V = zeros(k, k);
+    for p = 1:k
+        V(:, p) = uSample.^(k - p);
+    end
+
+    P  = zeros(numG, k, k);        % basis polynomial coefficients
+    dP = zeros(numG, k, k - 1);    % derivative polynomial coefficients
+
+    % Temporary grid without P/dP for Cox-de Boor evaluation
+    tmpGrid = rmfield(grid, intersect(fieldnames(grid), {'P','dP'}));
+
+    for s = 0:numG-1
+        % k sample points in physical z-space for this span
+        zs = gMin + (s + uSample) * h;
+
+        % Evaluate basis via Cox-de Boor at these k points
+        Bfull = bsplineBasisCoxDeBoor(zs, tmpGrid);    % [k x numBasis]
+
+        % Extract the k non-zero bases for span s (columns s+1 .. s+k)
+        Blocal = Bfull(:, s+1 : s+k);                   % [k x k]
+
+        % Solve V * polyCoeffs = Blocal  =>  polyCoeffs for each basis
+        Pspan = (V \ Blocal)';                           % [k x k]
+        P(s+1, :, :) = Pspan;
+
+        % Derivative coefficients: d/dz = (1/h) * d/du
+        % If poly is a_{k-1} u^{k-1} + ... + a_1 u + a_0
+        % then d/du = (k-1)*a_{k-1} u^{k-2} + ... + a_1
+        for i = 1:k
+            pc = Pspan(i, :);                            % [1 x k]
+            dp = pc(1:end-1) .* ((k-1):-1:1) * invH;    % chain rule
+            dP(s+1, i, :) = dp;
+        end
+    end
+
+    grid.P  = P;
+    grid.dP = dP;
+end
+
+% ======================================================================
+% Original Cox-de Boor (used only by precomputeBSplinePoly at init)
+% ======================================================================
+function B = bsplineBasisCoxDeBoor(z, grid)
+    knots    = grid.knots;
+    k        = grid.order;
+    gMin     = grid.gridRange(1);
+    gMax     = grid.gridRange(2);
+
+    zv = z(:);
+    N  = numel(zv);
+    numKnots = numel(knots);
+    nSpans   = numKnots - 1;
+
+    zInd = max(gMin, min(gMax, zv));
+
+    Bc = zeros(N, nSpans);
+    for i = 1:nSpans
+        if knots(i+1) > knots(i)
+            Bc(:,i) = double(zInd >= knots(i) & zInd < knots(i+1));
+        end
+    end
+    lastNZ = find(diff(knots) > 0, 1, 'last');
+    Bc(zInd == gMax, lastNZ) = 1;
+
+    for p = 2:k
+        nB   = nSpans - p + 1;
+        Bnew = zeros(N, nB);
+        for i = 1:nB
+            d1 = knots(i+p-1) - knots(i);
+            d2 = knots(i+p)   - knots(i+1);
+            w1 = 0;  w2 = 0;
+            if d1 > 0
+                w1 = (zv - knots(i)) / d1 .* Bc(:,i);
+            end
+            if d2 > 0
+                w2 = (knots(i+p) - zv) / d2 .* Bc(:,i+1);
+            end
+            Bnew(:,i) = w1 + w2;
+        end
+        Bc = Bnew;
+    end
+    B = Bc;
 end

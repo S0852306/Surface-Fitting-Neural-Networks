@@ -161,11 +161,7 @@ function Direction = buildDirectionFromVector(SearchDirection, NN)
 
     if isfield(NN,'splineOn') && NN.splineOn
         cDir = SearchDirection(NN.numOfWeight+NN.numOfBias+1:end);
-        if isfield(NN,'bsplineOn') && NN.bsplineOn
-            nK = NN.bsplineGrid.numBasis;
-        else
-            nK = NN.splineGrid.numKnots;
-        end
+        nK = NN.bsplineGrid.numBasis;
         nL = NN.depth - 1;
         Direction.Spline = cell(nL, 1);
         offset = 0;

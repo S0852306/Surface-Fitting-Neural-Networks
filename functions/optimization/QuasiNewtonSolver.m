@@ -10,17 +10,18 @@ function optimizedNN = QuasiNewtonSolver(data, label, NN, option)
     option = normalizeOptions(option, NN);
     autoGrad = selectAnalyticalGradient(NN, option);
     splineOn = isfield(NN, 'splineOn') && NN.splineOn;
+    lnOn = isfield(NN, 'layerNormOn') && NN.layerNormOn;
 
     NN.Damping = option.Damping;
     NN.Termination = 0;
     NN.OptimizationFail = 0;
     NN.FirstOrderOptimality = Inf;
 
-    paramVec = packParameters(NN, splineOn);
+    paramVec = packParameters(NN, splineOn, lnOn);
     state = initQuasiNewtonState(option, numel(paramVec), NN);
 
-    [dw, db, dc] = autoGrad(data, label, NN);
-    gradVec = packGradient(dw, db, dc, NN, splineOn);
+    [dw, db, dc, dlnG, dlnB] = autoGrad(data, label, NN);
+    gradVec = packGradient(dw, db, dc, NN, splineOn, lnOn, dlnG, dlnB);
 
     history = initHistory(option.MaxIteration, option.storeHistory);
     progressInterval = max(1, floor(option.MaxIteration / 20));
@@ -52,10 +53,10 @@ function optimizedNN = QuasiNewtonSolver(data, label, NN, option)
 
         stepVec = stepSize * searchDirection;
         paramVec = paramVec + stepVec;
-        NN = unpackParameters(paramVec, NN, splineOn);
+        NN = unpackParameters(paramVec, NN, splineOn, lnOn);
 
-        [dw, db, dc] = autoGrad(data, label, NN);
-        newGradVec = packGradient(dw, db, dc, NN, splineOn);
+        [dw, db, dc, dlnG, dlnB] = autoGrad(data, label, NN);
+        newGradVec = packGradient(dw, db, dc, NN, splineOn, lnOn, dlnG, dlnB);
 
         yVec = newGradVec - lineGradient;
         NN.FirstOrderOptimality = max(abs(newGradVec));
@@ -385,14 +386,17 @@ function lbfgs = pushLbfgsPair(lbfgs, sVec, yVec, yTs)
     end
 end
 
-function paramVec = packParameters(NN, splineOn)
+function paramVec = packParameters(NN, splineOn, lnOn)
     paramVec = [MatrixToVec(NN.weight, NN); MatrixToVec(NN.bias, NN)];
     if splineOn
         paramVec = [paramVec; splineCellToVec(NN.splineCoeff)];
     end
+    if lnOn
+        paramVec = [paramVec; lnCellToVec(NN.lnGamma); lnCellToVec(NN.lnBeta)];
+    end
 end
 
-function gradVec = packGradient(dw, db, dc, NN, splineOn)
+function gradVec = packGradient(dw, db, dc, NN, splineOn, lnOn, dlnG, dlnB)
     gradVec = [MatrixToVec(dw, NN); MatrixToVec(db, NN)];
     if splineOn
         if ~iscell(dc)
@@ -401,15 +405,27 @@ function gradVec = packGradient(dw, db, dc, NN, splineOn)
         end
         gradVec = [gradVec; splineCellToVec(dc)];
     end
+    if lnOn
+        gradVec = [gradVec; lnCellToVec(dlnG); lnCellToVec(dlnB)];
+    end
 end
 
-function NN = unpackParameters(paramVec, NN, splineOn)
+function NN = unpackParameters(paramVec, NN, splineOn, lnOn)
     weightEnd = NN.numOfWeight;
     biasEnd = NN.numOfWeight + NN.numOfBias;
     NN.weight = VecToMatrix(paramVec(1:weightEnd), NN);
     NN.bias = VecToMatrix(paramVec(weightEnd + 1:biasEnd), NN);
+    offset = biasEnd;
     if splineOn
-        NN.splineCoeff = splineVecToCell(paramVec(biasEnd + 1:end), NN);
+        splineEnd = offset + NN.numOfSpline;
+        NN.splineCoeff = splineVecToCell(paramVec(offset + 1:splineEnd), NN);
+        offset = splineEnd;
+    end
+    if lnOn
+        halfLN = NN.numOfLN / 2;
+        NN.lnGamma = lnVecToCell(paramVec(offset + 1:offset + halfLN), NN);
+        offset = offset + halfLN;
+        NN.lnBeta = lnVecToCell(paramVec(offset + 1:offset + halfLN), NN);
     end
 end
 
@@ -418,17 +434,28 @@ function vec = splineCellToVec(cells)
 end
 
 function cells = splineVecToCell(vec, NN)
-    if isfield(NN, 'bsplineOn') && NN.bsplineOn
-        numCoeff = NN.bsplineGrid.numBasis;
-    else
-        numCoeff = NN.splineGrid.numKnots;
-    end
+    numCoeff = NN.bsplineGrid.numBasis;
     numLayers = NN.depth - 1;
     cells = cell(numLayers, 1);
     offset = 0;
     for idx = 1:numLayers
         cells{idx} = vec(offset + 1:offset + numCoeff);
         offset = offset + numCoeff;
+    end
+end
+
+function vec = lnCellToVec(cells)
+    vec = vertcat(cells{:});
+end
+
+function cells = lnVecToCell(vec, NN)
+    numLayers = NN.depth - 1;
+    cells = cell(numLayers, 1);
+    offset = 0;
+    for idx = 1:numLayers
+        H = size(NN.weight{idx}, 1);
+        cells{idx} = vec(offset + 1:offset + H);
+        offset = offset + H;
     end
 end
 

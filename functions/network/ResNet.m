@@ -16,16 +16,13 @@ function FunctionOutput = ResNet(data, NN)
     % vp stores the previous pre-activation z (used by ResMap for i>1)
     vp = [];
     splineOn = isfield(NN,'splineOn') && NN.splineOn;
+    lnOn = isfield(NN,'layerNormOn') && NN.layerNormOn;
 
     for i = 1:(NN.depth - 1)
         z = NN.weight{i} * v + NN.bias{i};
 
         if splineOn
-            if NN.bsplineOn
-                a = BSplineActivation(z, NN.splineCoeff{i}, NN.bsplineGrid);
-            else
-                a = SplineActivation(z, NN.splineCoeff{i}, NN.splineGrid);
-            end
+            a = BSplineActivation(z, NN.splineCoeff{i}, NN.bsplineGrid);
         else
             a = NN.active(z);
         end
@@ -34,6 +31,13 @@ function FunctionOutput = ResNet(data, NN)
             v = a + NN.ResMap{i} * vp;
         else
             v = a;
+        end
+
+        % Layer Normalization (per-sample, across neurons)
+        if lnOn
+            mu = mean(v, 1);            % 1 x N
+            sig2 = var(v, 1, 1) + 1e-5; % 1 x N
+            v = NN.lnGamma{i} .* ((v - mu) ./ sqrt(sig2)) + NN.lnBeta{i};
         end
 
         vp = z;

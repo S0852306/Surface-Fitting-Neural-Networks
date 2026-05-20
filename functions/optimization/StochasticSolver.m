@@ -21,8 +21,8 @@ function optimizedNN = StochasticSolver(data, label, NN, option)
             batchLabel = batches.Label{batchIdx};
             NN = setCurrentSampleWeight(NN, batches, batchIdx);
 
-            [dw, db, dc] = autoGrad(batchData, batchLabel, NN);
-            NN = StochasticUpdateRule(dw, db, NN, option, dc);
+            [dw, db, dc, dlnG, dlnB] = autoGrad(batchData, batchLabel, NN);
+            NN = StochasticUpdateRule(dw, db, NN, option, dc, dlnG, dlnB);
 
             if history.store
                 history.batchCost(state.counter) = CostFunction(batchData, batchLabel, NN);

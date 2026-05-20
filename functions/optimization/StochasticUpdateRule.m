@@ -1,13 +1,18 @@
-function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc)
+function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc, dlnG, dlnB)
 %STOCHASTICUPDATERULE  Apply one stochastic optimizer step.
 
     if nargin < 5
         dc = {};
     end
+    if nargin < 7
+        dlnG = {};
+        dlnB = {};
+    end
 
     solver = char(option.Solver);
     stepSize = option.s0;
     splineOn = isfield(NN, 'splineOn') && NN.splineOn && ~isempty(dc);
+    lnOn = isfield(NN, 'layerNormOn') && NN.layerNormOn && ~isempty(dlnG);
 
     switch solver
         case 'SGD'
@@ -15,6 +20,10 @@ function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc)
             NN.bias = applySgd(NN.bias, db, stepSize);
             if splineOn
                 NN.splineCoeff = applySgd(NN.splineCoeff, dc, stepSize);
+            end
+            if lnOn
+                NN.lnGamma = applySgd(NN.lnGamma, dlnG, stepSize);
+                NN.lnBeta = applySgd(NN.lnBeta, dlnB, stepSize);
             end
 
         case 'SGDM'
@@ -24,12 +33,20 @@ function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc)
             if splineOn
                 [NN.splineCoeff, NN.FirstMomentC] = applyMomentum(NN.splineCoeff, dc, NN.FirstMomentC, stepSize, momentum);
             end
+            if lnOn
+                [NN.lnGamma, NN.FirstMomentLnG] = applyMomentum(NN.lnGamma, dlnG, NN.FirstMomentLnG, stepSize, momentum);
+                [NN.lnBeta, NN.FirstMomentLnB] = applyMomentum(NN.lnBeta, dlnB, NN.FirstMomentLnB, stepSize, momentum);
+            end
 
         case 'RMSprop'
             [NN.weight, NN.FirstMomentW] = applyRmsprop(NN.weight, dw, NN.FirstMomentW, stepSize);
             [NN.bias, NN.FirstMomentB] = applyRmsprop(NN.bias, db, NN.FirstMomentB, stepSize);
             if splineOn
                 [NN.splineCoeff, NN.FirstMomentC] = applyRmsprop(NN.splineCoeff, dc, NN.FirstMomentC, stepSize);
+            end
+            if lnOn
+                [NN.lnGamma, NN.FirstMomentLnG] = applyRmsprop(NN.lnGamma, dlnG, NN.FirstMomentLnG, stepSize);
+                [NN.lnBeta, NN.FirstMomentLnB] = applyRmsprop(NN.lnBeta, dlnB, NN.FirstMomentLnB, stepSize);
             end
 
         case 'ADAM'
@@ -39,6 +56,10 @@ function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc)
             if splineOn
                 [NN.splineCoeff, NN.FirstMomentC, NN.SecondMomentC] = applyAdam(NN.splineCoeff, dc, NN.FirstMomentC, NN.SecondMomentC, stepSize, iter);
             end
+            if lnOn
+                [NN.lnGamma, NN.FirstMomentLnG, NN.SecondMomentLnG] = applyAdam(NN.lnGamma, dlnG, NN.FirstMomentLnG, NN.SecondMomentLnG, stepSize, iter);
+                [NN.lnBeta, NN.FirstMomentLnB, NN.SecondMomentLnB] = applyAdam(NN.lnBeta, dlnB, NN.FirstMomentLnB, NN.SecondMomentLnB, stepSize, iter);
+            end
 
         case 'AdamW'
             iter = NN.StochasticCounter;
@@ -47,6 +68,10 @@ function updatedNN = StochasticUpdateRule(dw, db, NN, option, dc)
             [NN.bias, NN.FirstMomentB, NN.SecondMomentB] = applyAdamW(NN.bias, db, NN.FirstMomentB, NN.SecondMomentB, stepSize, iter, regulator);
             if splineOn
                 [NN.splineCoeff, NN.FirstMomentC, NN.SecondMomentC] = applyAdamW(NN.splineCoeff, dc, NN.FirstMomentC, NN.SecondMomentC, stepSize, iter, regulator);
+            end
+            if lnOn
+                [NN.lnGamma, NN.FirstMomentLnG, NN.SecondMomentLnG] = applyAdamW(NN.lnGamma, dlnG, NN.FirstMomentLnG, NN.SecondMomentLnG, stepSize, iter, regulator);
+                [NN.lnBeta, NN.FirstMomentLnB, NN.SecondMomentLnB] = applyAdamW(NN.lnBeta, dlnB, NN.FirstMomentLnB, NN.SecondMomentLnB, stepSize, iter, regulator);
             end
 
         otherwise

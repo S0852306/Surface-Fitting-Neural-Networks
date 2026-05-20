@@ -1,5 +1,7 @@
 clear; clc; close all;
-addpath(genpath('functions'));
+if ~exist('NeuralFit','file')
+    run('installScript/installNeuralNetsPack.m');
+end
 
 x = linspace(-2, 2, 80);
 y = abs(x) + 0.1*sin(8*x);

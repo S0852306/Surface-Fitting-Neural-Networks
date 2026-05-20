@@ -1,23 +1,25 @@
-function [dw,db,dc]=AutomaticGradient(data,label,NN)
+function [dw,db,dc,dlnG,dlnB]=AutomaticGradient(data,label,NN)
 
 data=NN.InputScaleVector.*data-NN.InputCenterVector;
 
 splineOn = isfield(NN,'splineOn') && NN.splineOn;
+lnOn = isfield(NN,'layerNormOn') && NN.layerNormOn;
+
+if lnOn
+    LN_vhat = cell(NN.depth-1, 1);
+    LN_invStd = cell(NN.depth-1, 1);
+end
 
 v=data;
 
-actID = NN.activationID;  % 1..5 built-in, 7 spline, 0 custom
+actID = NN.activationID;  % 1..6 built-in, 7 BSpline, 0 custom
 
 for j=1:NN.depth-1
     z=NN.weight{j}*v+NN.bias{j};
 
     % ---- forward activation (fast) ----
     if splineOn
-        if NN.bsplineOn
-            [a, d] = BSplineActivation(z, NN.splineCoeff{j}, NN.bsplineGrid);
-        else
-            [a, d] = SplineActivation(z, NN.splineCoeff{j}, NN.splineGrid);
-        end
+        [a, d] = BSplineActivation(z, NN.splineCoeff{j}, NN.bsplineGrid);
         Memory.Z{j} = z;   % store pre-activation for coefficient gradient
     elseif actID ~= 0
         switch actID
@@ -45,7 +47,20 @@ for j=1:NN.depth-1
     end
 
     v=a;
-    Memory.A{j}=a;
+
+    % Layer Normalization
+    if lnOn
+        H = size(v, 1);
+        mu = mean(v, 1);
+        sig2 = var(v, 1, 1) + 1e-5;
+        invStd = 1 ./ sqrt(sig2);
+        vhat = (v - mu) .* invStd;
+        v = NN.lnGamma{j} .* vhat + NN.lnBeta{j};
+        LN_vhat{j} = vhat;
+        LN_invStd{j} = invStd;
+    end
+
+    Memory.A{j}=v;
     Memory.D{j}=d;
 end
 
@@ -74,35 +89,63 @@ else
 end
 dw=NN.weight; db=NN.bias;
 if splineOn; dc = cell(NN.depth-1, 1); else; dc = {}; end
+if lnOn; dlnG = cell(NN.depth-1, 1); dlnB = cell(NN.depth-1, 1);
+else; dlnG = {}; dlnB = {}; end
 
 dw{NN.depth}=g*(Memory.A{NN.depth-1}.' );
 db{NN.depth}=sum(g,2);
 
 for j=NN.depth-1:-1:2
-    dLda = (NN.weight{j+1}.')*g;          % dL/da_j
-    if splineOn
-        if NN.bsplineOn
-            dc{j} = BSplineCoeffGrad(dLda, Memory.Z{j}, NN.bsplineGrid);
-        else
-            dc{j} = SplineCoeffGrad(dLda, Memory.Z{j}, NN.splineGrid);
-        end
+    gV = (NN.weight{j+1}.')*g;          % dL/dv_j (post-LN)
+
+    % ---- LayerNorm backprop ----
+    if lnOn
+        H = size(gV, 1);
+        vhat_j = LN_vhat{j};
+        invStd_j = LN_invStd{j};
+        gamma_j = NN.lnGamma{j};
+
+        dlnG{j} = sum(gV .* vhat_j, 2);
+        dlnB{j} = sum(gV, 2);
+
+        dxhat = gV .* gamma_j;
+        gV = (1/H) .* invStd_j .* (H * dxhat ...
+            - sum(dxhat, 1) ...
+            - vhat_j .* sum(dxhat .* vhat_j, 1));
     end
-    g=Memory.D{j}.*dLda;                  % dL/dz_j
+
+    if splineOn
+        dc{j} = BSplineCoeffGrad(gV, Memory.Z{j}, NN.bsplineGrid);
+    end
+    g=Memory.D{j}.*gV;                  % dL/dz_j
     A=(Memory.A{j-1}).';
     dw{j}=g*A;
     db{j}=sum(g,2);
 end
 
 % Compute Gradient For First Layer
-dLda = (NN.weight{2}.')*g;
-if splineOn
-    if NN.bsplineOn
-        dc{1} = BSplineCoeffGrad(dLda, Memory.Z{1}, NN.bsplineGrid);
-    else
-        dc{1} = SplineCoeffGrad(dLda, Memory.Z{1}, NN.splineGrid);
-    end
+gV = (NN.weight{2}.')*g;
+
+% ---- LayerNorm backprop for layer 1 ----
+if lnOn
+    H = size(gV, 1);
+    vhat_j = LN_vhat{1};
+    invStd_j = LN_invStd{1};
+    gamma_j = NN.lnGamma{1};
+
+    dlnG{1} = sum(gV .* vhat_j, 2);
+    dlnB{1} = sum(gV, 2);
+
+    dxhat = gV .* gamma_j;
+    gV = (1/H) .* invStd_j .* (H * dxhat ...
+        - sum(dxhat, 1) ...
+        - vhat_j .* sum(dxhat .* vhat_j, 1));
 end
-g=Memory.D{1}.*dLda;
+
+if splineOn
+    dc{1} = BSplineCoeffGrad(gV, Memory.Z{1}, NN.bsplineGrid);
+end
+g=Memory.D{1}.*gV;
 A=data.';
 dw{1}=g*A;
 db{1}=sum(g,2);

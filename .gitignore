@@ -1,0 +1,22 @@
+# MATLAB temporary files
+*.asv
+*.m~
+*.autosave
+
+# Simulink / code generation
+slprj/
+codegen/
+
+# MEX binaries
+*.mex*
+
+# MAT data (keep checked-in ones explicitly)
+*.mat
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Editor
+*.swp
+*~
